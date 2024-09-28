@@ -16,12 +16,16 @@ of the [KL3M](https://kl3m.ai/) project.
 Note that this project is a work-in-progress and relies on compiled Rust code. As such, it is recommended to install
 the package from GitHub source until a stable release is available.
 
+You can install the latest release from PyPI using pip:
+```
+pip install alea-preprocess
+```
+
 You can install a development version of the package by running the following command:
 ```
 poetry run maturin develop
 ```
 
-Installation via PyPI will be available once a stable release is published.
 
 ## Examples
 Example use cases are currently available under the `tests/` directory.
