@@ -4,12 +4,34 @@ build-backend = "maturin"
 
 [project]
 name = "alea-preprocess"
-description = "Data preprocessing library from the ALEA Institute"
+version = "0.1.1"
+description = "Efficient, accessible preprocessing routines for pretrain, SFT, and DPO training data preparation from the ALEA Institute."
+authors = ["ALEA Institute <hello@aleainstitute.ai>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://aleainstitute.ai/"
+repository = "https://github.com/alea-institute/alea-preprocess"
+keywords = ["alea", "llm", "data", "preprocess", "pretrain", "kl3m"]
 requires-python = ">=3.10, <4.0"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Utilities"
 ]
 dynamic = ["version"]
 
@@ -18,16 +40,19 @@ features = ["pyo3/extension-module"]
 
 [tool.poetry]
 name = "alea-preprocess"
-version = "0.1.0"
-description = "Data preprocessing library from the ALEA Institute"
-authors = ["Mike Bommarito <mike@aleainstitute.ai>"]
+version = "0.1.1"
+description = "Efficient, accessible preprocessing routines for pretrain, SFT, and DPO training data preparation.from the ALEA Institute."
+authors = ["ALEA Institute <hello@aleainstitute.ai>"]
+license = "MIT"
 readme = "README.md"
+homepage = "https://aleainstitute.ai/"
+repository = "https://github.com/alea-institute/alea-preprocess"
+keywords = ["alea", "llm", "data", "preprocess", "pretrain", "kl3m"]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4.0"
 pytest = "^8.3.2"
 maturin = { version = ">=1.7", extras = ["patchelf"] }
-
 
 
 [tool.pylint]
