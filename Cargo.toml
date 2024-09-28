@@ -1,7 +1,8 @@
 [package]
 name = "alea-preprocess"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
+exclude = ["**/__pycache__", "**/*.pyc", "**/*.pyo", "tests/", "resources/", "docker/", ".github/", ".pre-commit-config.yaml", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -10,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 base64 = "0.22.1"
-blake2 = { version = "0.10.6" }
+blake2 = { version = "0.11.0-pre.4" }
 blake3 = { version = "1.5.3", features = ["rayon", "mmap"] }
 file-format = { version = "0.25.0", features = ["reader"] }
 flate2 = { version = "1.0.31", features = ["zlib-ng"] }
