@@ -1,6 +1,6 @@
 [package]
 name = "alea-preprocess"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 exclude = ["**/__pycache__", "**/*.pyc", "**/*.pyo", "tests/", "resources/", "docker/", ".github/", ".pre-commit-config.yaml", ".gitignore"]
 
