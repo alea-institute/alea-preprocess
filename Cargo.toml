@@ -1,0 +1,31 @@
+[package]
+name = "alea-preprocess"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "alea_preprocess"
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = "0.22.1"
+blake2 = { version = "0.10.6" }
+blake3 = { version = "1.5.3", features = ["rayon", "mmap"] }
+file-format = { version = "0.25.0", features = ["reader"] }
+flate2 = { version = "1.0.31", features = ["zlib-ng"] }
+hex = "0.4.3"
+html-escape = "0.2.13"
+icu = "1.5.0"
+lazy_static = "1.5.0"
+pdfium-render = "0.8.24"
+pyo3 = { version = "0.22.0", features = ["extension-module", "serde"] }
+rayon = "1.10.0"
+regex = "1.10.6"
+reqwest = { version = "0.12.7", features = ["blocking", "json"] }
+serde_json = "1.0.125"
+strsim = "0.11.1"
+tl = { version = "0.7.8", features = ["simd"] }
+tokenizers = { version = "0.20.0", features = ["http"] }
+tokio = { version = "1.39.3", features = ["full", "test-util"] }
+walkdir = "2.5.0"

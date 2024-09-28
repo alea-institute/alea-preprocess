@@ -1,0 +1,60 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "alea-preprocess"
+description = "Data preprocessing library from the ALEA Institute"
+requires-python = ">=3.10, <4.0"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+
+[tool.poetry]
+name = "alea-preprocess"
+version = "0.1.0"
+description = "Data preprocessing library from the ALEA Institute"
+authors = ["Mike Bommarito <mike@aleainstitute.ai>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10, <4.0"
+pytest = "^8.3.2"
+maturin = { version = ">=1.7", extras = ["patchelf"] }
+
+
+
+[tool.pylint]
+max-line-length = 120
+disable = [
+    "line-too-long",
+    "too-few-public-methods",
+    "no-self-argument",
+    "cyclic-import",
+    "duplicate-code",
+    "import-self",
+    "no-name-in-module",
+]
+extension-pkg-allow-list = ["lxml"]
+ignore-patterns = ["test_.*?.py", "conftest.py"]
+
+[tool.pylint.messages_control]
+max-args = 10
+max-attributes = 15
+max-branches = 15
+max-locals = 25
+min-public-methods = 0
+disable = ['W0511']
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.mypy]
+ignore_missing_imports = true
