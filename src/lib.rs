@@ -251,7 +251,7 @@ mod alea_preprocess {
 
             // submodule for bytes
             #[pymodule]
-            mod byte {
+            mod binary {
                 use super::*;
 
                 #[pyfunction]
