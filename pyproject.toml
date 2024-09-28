@@ -4,9 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "alea-preprocess"
-version = "0.1.1"
+version = "0.1.2"
 description = "Efficient, accessible preprocessing routines for pretrain, SFT, and DPO training data preparation from the ALEA Institute."
-authors = ["ALEA Institute <hello@aleainstitute.ai>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://aleainstitute.ai/"
@@ -33,6 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Utilities"
 ]
+exclude = ["**/__pycache__", "**/*.pyc", "**/*.pyo", "tests/", "resources/", "docker/", ".github/", ".pre-commit-config.yaml", ".gitignore"]
 dynamic = ["version"]
 
 [tool.maturin]
@@ -40,7 +40,7 @@ features = ["pyo3/extension-module"]
 
 [tool.poetry]
 name = "alea-preprocess"
-version = "0.1.1"
+version = "0.1.2"
 description = "Efficient, accessible preprocessing routines for pretrain, SFT, and DPO training data preparation.from the ALEA Institute."
 authors = ["ALEA Institute <hello@aleainstitute.ai>"]
 license = "MIT"
@@ -48,6 +48,7 @@ readme = "README.md"
 homepage = "https://aleainstitute.ai/"
 repository = "https://github.com/alea-institute/alea-preprocess"
 keywords = ["alea", "llm", "data", "preprocess", "pretrain", "kl3m"]
+exclude = ["**/__pycache__", "**/*.pyc", "**/*.pyo", "tests/", "resources/", "docker/", ".github/", ".pre-commit-config.yaml", ".gitignore"]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <4.0"
