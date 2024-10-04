@@ -1,9 +1,9 @@
+use crate::algos::segmentation::abbreviations::ABBREVIATIONS;
 /// Sentence segmentation algorithms from ALEA Institute, including
 ///  - abbreviation collection routines
 /// - extremely  fast, deterministic sentence boundary detection
 /// - calibrated classifier for sentence boundary detection
 use crate::algos::unicode::segmentations::get_word_indices;
-use crate::algos::segmentation::abbreviations::ABBREVIATIONS;
 use regex::Regex;
 
 /**
@@ -113,7 +113,6 @@ pub fn get_abbreviations_regex(input_text: &str) -> Vec<String> {
     abbreviations
 }
 
-
 #[allow(unused_variables)]
 pub fn get_sentence_boundaries(input_text: &str) -> Vec<usize> {
     // get the start, end, token values for the input text.
@@ -149,7 +148,9 @@ pub fn get_sentence_boundaries(input_text: &str) -> Vec<usize> {
                 }
 
                 boundaries.push(*c_end);
-            } else if n1_token.trim() == "" && n2_token.chars().next().unwrap().is_ascii_punctuation() {
+            } else if n1_token.trim() == ""
+                && n2_token.chars().next().unwrap().is_ascii_punctuation()
+            {
                 boundaries.push(*c_end);
             } else if n1_token.trim() == "" && n2_token.trim() == "" {
                 // check for abbreviations

@@ -54,3 +54,12 @@ def test_example_treasury():
         "U.S. Department of the Treasury Announces Maine Will Join IRS Direct File for Filing Season 2025"
         in output
     )
+
+
+def test_example_dol():
+    output = alea_preprocess.parsers.html.conversion.extract_buffer_markdown(
+        open("resources/entrepre.htm").read(), output_links=True, output_images=True
+    )
+
+    with open("/tmp/test2.txt", "wt") as output_file:
+        output_file.write(output)

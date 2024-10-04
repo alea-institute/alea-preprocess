@@ -359,10 +359,7 @@ mod alea_preprocess {
                 };
 
                 #[pyfunction]
-                fn transform_category(
-                    input_data: &str,
-                    n: usize,
-                ) -> PyResult<Vec<Vec<String>>> {
+                fn transform_category(input_data: &str, n: usize) -> PyResult<Vec<Vec<String>>> {
                     // get the category for each character, then map with category_to_string
                     let raw_result = match n {
                         1 => crate::algos::ngrams::categories::transform_category_1(input_data),
