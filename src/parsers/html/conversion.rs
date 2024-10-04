@@ -560,6 +560,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     "strong" => {
                         blocks.push(self.parse_strong(&child));
                     }
+                    "center" => {
+                        blocks.push(self.parse_strong(&child));
+                    }
                     "a" => {
                         blocks.push(self.parse_link(&child));
                     }
@@ -763,7 +766,7 @@ mod tests {
     }
 
     #[test]
-    fn test_treasury() {
+    fn test_treasury_001() {
         // load from CARGO_MANIFEST_DIR
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
         let file_path = path::Path::new(manifest_dir).join("resources/treasury.html");
@@ -776,6 +779,21 @@ mod tests {
         // check that we don't have #block-content-homepage-hero in the output from <script> or <style>
         assert!(!result.contains("#block-content-homepage-hero"));
         assert!(result.contains("U.S. Department of the Treasury Announces Maine Will Join IRS Direct File for Filing Season 2025"));
+    }
+
+    #[test]
+    fn test_dol_001() {
+        // load from CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let file_path = path::Path::new(manifest_dir).join("resources/entrepre.htm");
+        let sample = fs::read_to_string(file_path).unwrap();
+
+        // parse the file
+        let parser = HtmlToMarkdownParser::new(ParserConfig::new(None, true, true), &sample);
+        let result = dbg!(parser.to_markdown());
+
+        // check for 'Microenterprise organizations include capital' in the markdown
+        assert!(result.contains("Microenterprise organizations include capital"));
     }
 
     // test no link
