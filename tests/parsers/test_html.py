@@ -61,5 +61,12 @@ def test_example_dol():
         open("resources/entrepre.htm").read(), output_links=True, output_images=True
     )
 
-    with open("/tmp/test2.txt", "wt") as output_file:
-        output_file.write(output)
+    assert "Microenterprise organizations include capital" in output
+
+
+def test_example_dol_text():
+    output = alea_preprocess.parsers.html.conversion.extract_buffer_text(
+        open("resources/entrepre.htm").read()
+    )
+
+    assert "Microenterprise organizations include capital" in output

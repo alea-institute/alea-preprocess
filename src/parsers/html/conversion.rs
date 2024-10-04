@@ -607,6 +607,419 @@ impl<'a> HtmlToMarkdownParser<'a> {
     }
 }
 
+
+/// Normalize the plain text output.
+/// Arguments:
+/// - text: The text to clean up.
+/// Returns:
+/// - The cleaned up text.
+pub fn normalize_text(text: &str) -> String {
+    // handle newlines, &nbsp, and similar issues
+    RE_CLEAN_NEWLINE
+        .replace_all(text, "\n\n")
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("\u{00A0}", " ")
+        .replace("\u{200B}", "")
+        .replace("\u{200C}", "")
+        .to_string()
+}
+
+
+pub struct HtmlToPlainTextParser<'a> {
+    config: ParserConfig,
+    dom: tl::VDom<'a>,
+}
+
+impl<'a> HtmlToPlainTextParser<'a> {
+    pub fn new(config: ParserConfig, html_input: &'a str) -> HtmlToPlainTextParser<'a> {
+        // Parse the HTML input into a virtual DOM
+        let dom = tl::parse(html_input, tl::ParserOptions::default()).unwrap();
+
+        HtmlToPlainTextParser { config, dom }
+    }
+
+    pub fn parser(&self) -> &'a tl::Parser {
+        self.dom.parser()
+    }
+
+    pub fn get_children(&self, node: &'a tl::Node) -> Vec<&'a tl::Node> {
+        // Get the children of a node
+        let mut results: Vec<&'a tl::Node> = Vec::new();
+
+        if let Some(children) = node.children() {
+            for child in children.top().iter() {
+                if let Some(child_node) = child.get(self.parser()) {
+                    results.push(child_node);
+                }
+            }
+        }
+
+        results
+    }
+
+    pub fn get_first_selector(&self, selector: &str) -> Option<&tl::Node> {
+        // Get the first element by selector
+        let result = self
+            .dom
+            .query_selector(selector)
+            .and_then(|mut iter| iter.next());
+
+        if result.is_none() {
+            None
+        } else {
+            result?.get(self.parser())
+        }
+    }
+
+    pub fn get_top_element(&self) -> Option<tl::Node> {
+        // Look for elements in this priority order:
+        // - main
+        // - body
+        // - html
+        for element in ["main", "body", "html"].iter() {
+            if let Some(node) = self.get_first_selector(element) {
+                return Some(node.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn parse_div_element(&self, node: &tl::Node) -> String {
+        let mut elements: Vec<String> = Vec::new();
+
+        for child in self.get_children(&node) {
+            let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+            if self.config.exclude_tags.contains(&child_tag_name) {
+                continue;
+            }
+
+            match child_tag_name.as_str() {
+                "section" | "article" | "aside" | "header" | "footer" | "nav" => {
+                    elements.push(self.parse_block_element(&child));
+                }
+                "div" => {
+                    elements.push(self.parse_div_element(&child));
+                }
+                "span" => {
+                    elements.push(self.parse_inline_element(&child));
+                }
+                "p" => {
+                    elements.push(self.parse_paragraph(&child));
+                }
+                "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+                    elements.push(self.parse_heading(&child));
+                }
+                "ul" | "ol" | "dl" => {
+                    elements.push(self.parse_list(&child, 0));
+                }
+                "table" => {
+                    elements.push(self.parse_table(&child));
+                }
+                "blockquote" => {
+                    elements.push(self.parse_blockquote(&child));
+                }
+                "pre" => {
+                    elements.push(self.parse_pre(&child));
+                }
+                "code" => {
+                    elements.push(self.parse_code(&child));
+                }
+                "em" => {
+                    elements.push(self.parse_emphasis(&child));
+                }
+                "strong" => {
+                    elements.push(self.parse_strong(&child));
+                }
+                "a" => {
+                    elements.push(self.parse_link(&child));
+                }
+                "img" => {
+                    elements.push(self.parse_image(&child));
+                }
+                "s" | "strike" | "del" => {
+                    elements.push(self.parse_strikethrough(&child));
+                }
+                "br" => {
+                    elements.push(self.parse_br(&child));
+                }
+                "hr" => {
+                    elements.push(self.parse_hr(&child));
+                }
+                _ => continue,
+            }
+        }
+
+        // Trim empty elements and return joined
+        elements
+            .iter()
+            .filter(|x| !x.trim().is_empty())
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
+    pub fn parse_inline_element(&self, node: &tl::Node) -> String {
+        let mut elements: Vec<String> = Vec::new();
+
+        if let Some(text_node) = node.as_raw() {
+            elements.push(text_node.as_utf8_str().to_string());
+        }
+
+        for child in self.get_children(node) {
+            let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+            if self.config.exclude_tags.contains(&child_tag_name) {
+                continue;
+            }
+
+            match child_tag_name.as_str() {
+                "a" => elements.push(self.parse_link(&child)),
+                "img" => elements.push(self.parse_image(&child)),
+                "br" => elements.push(self.parse_br(&child)),
+                "ul" | "ol" | "dl" => elements.push(self.parse_list(&child, 0)),
+                _ => elements.push(self.parse_inline_element(&child)),
+            }
+        }
+
+        // Filter out empty elements and join
+        elements
+            .iter()
+            .filter(|x| !x.trim().is_empty())
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
+    pub fn parse_heading(&self, node: &tl::Node) -> String {
+        let tag_text = self.parse_inline_element(node);
+        format!("\n\n{}\n\n", tag_text)
+    }
+
+    pub fn parse_paragraph(&self, node: &tl::Node) -> String {
+        format!("{}\n", self.parse_inline_element(node))
+    }
+
+    pub fn parse_list(&self, node: &tl::Node, level: usize) -> String {
+        let mut list_items: Vec<String> = Vec::new();
+
+        for child in self.get_children(node) {
+            let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+            if self.config.exclude_tags.contains(&child_tag_name) {
+                continue;
+            }
+
+            let indent = "  ".repeat(level);
+
+            if child_tag_name == "li" || child_tag_name == "dt" || child_tag_name == "dd" {
+                let mut list_item_elements: Vec<String> = Vec::new();
+                let mut sublist = false;
+
+                for list_child in self.get_children(&child) {
+                    let list_child_tag_name = get_tag_name(&list_child);
+
+                    if self.config.exclude_tags.contains(&list_child_tag_name) {
+                        continue;
+                    }
+
+                    match list_child_tag_name.as_str() {
+                        "ul" | "ol" | "dl" => {
+                            list_item_elements.push(
+                                self.parse_list(&list_child, level + 1)
+                                    .trim()
+                                    .to_string(),
+                            );
+                            sublist = true;
+                        }
+                        _ => {
+                            list_item_elements.push(self.parse_inline_element(&list_child));
+                        }
+                    }
+                }
+
+                let list_item = if sublist {
+                    list_item_elements.join("\n")
+                } else {
+                    format!("{}- {}", indent, list_item_elements.join(" "))
+                };
+
+                if !list_item.trim().is_empty() {
+                    list_items.push(list_item);
+                }
+            }
+        }
+
+        list_items.join("\n")
+    }
+
+    pub fn parse_table(&self, node: &tl::Node) -> String {
+        let mut table_text = String::new();
+
+        for row in self.get_children(node).iter().filter(|child| get_tag_name(child) == "tr") {
+            let mut row_text = String::new();
+            for cell in self
+                .get_children(row)
+                .iter()
+                .filter(|cell| get_tag_name(cell) == "th" || get_tag_name(cell) == "td")
+            {
+                let cell_text = self.parse_inline_element(cell).trim().to_string();
+                row_text.push_str(&format!("{}\t", cell_text));
+            }
+            table_text.push_str(&format!("{}\n", row_text.trim_end()));
+        }
+
+        table_text
+    }
+
+    pub fn parse_blockquote(&self, node: &tl::Node) -> String {
+        let quote = self.parse_inline_element(node);
+        format!("> {}\n", quote)
+    }
+
+    pub fn parse_pre(&self, node: &tl::Node) -> String {
+        let code = self.parse_inline_element(node);
+        format!("\n{}\n", code)
+    }
+
+    pub fn parse_code(&self, node: &tl::Node) -> String {
+        self.parse_inline_element(node)
+    }
+
+    pub fn parse_emphasis(&self, node: &tl::Node) -> String {
+        self.parse_inline_element(node)
+    }
+
+    pub fn parse_strong(&self, node: &tl::Node) -> String {
+        self.parse_inline_element(node)
+    }
+
+    pub fn parse_link(&self, node: &tl::Node) -> String {
+        self.parse_inline_element(node)
+    }
+
+    pub fn parse_image(&self, node: &tl::Node) -> String {
+        let tag_attributes = get_tag_attributes(node);
+        if let Some(alt) = tag_attributes.get("alt") {
+            alt.clone()
+        } else {
+            "".to_string()
+        }
+    }
+
+    pub fn parse_strikethrough(&self, node: &tl::Node) -> String {
+        self.parse_inline_element(node)
+    }
+
+    pub fn parse_br(&self, _node: &tl::Node) -> String {
+        "\n".to_string()
+    }
+
+    pub fn parse_hr(&self, _node: &tl::Node) -> String {
+        "\n---\n".to_string()
+    }
+
+    pub fn parse_block_element(&self, node: &tl::Node) -> String {
+        // Initialize the block text strings
+        let mut blocks: Vec<String> = Vec::new();
+
+        // Iterate through children
+        for child_handle in node.children().unwrap().top().iter() {
+            if let Some(child) = child_handle.get(self.parser()) {
+                let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+                // Skip if the tag is in the exclude list
+                if self.config.exclude_tags.contains(&child_tag_name) {
+                    continue;
+                }
+
+                match child_tag_name.as_str() {
+                    "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
+                    | "nav" => {
+                        blocks.push(self.parse_block_element(&child));
+                    }
+                    "div" => {
+                        blocks.push(self.parse_div_element(&child));
+                    }
+                    "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+                        blocks.push(self.parse_heading(&child));
+                    }
+                    "p" => {
+                        blocks.push(self.parse_paragraph(&child));
+                    }
+                    "ul" | "ol" | "dl" => {
+                        blocks.push(self.parse_list(&child, 0));
+                    }
+                    "table" => {
+                        blocks.push(self.parse_table(&child));
+                    }
+                    "blockquote" => {
+                        blocks.push(self.parse_blockquote(&child));
+                    }
+                    "pre" => {
+                        blocks.push(self.parse_pre(&child));
+                    }
+                    "code" => {
+                        blocks.push(self.parse_code(&child));
+                    }
+                    "em" => {
+                        blocks.push(self.parse_emphasis(&child));
+                    }
+                    "strong" => {
+                        blocks.push(self.parse_strong(&child));
+                    }
+                    "center" => {
+                        blocks.push(self.parse_strong(&child));
+                    }
+                    "a" => {
+                        blocks.push(self.parse_link(&child));
+                    }
+                    "img" => {
+                        blocks.push(self.parse_image(&child));
+                    }
+                    "s" | "strike" | "del" => {
+                        blocks.push(self.parse_strikethrough(&child));
+                    }
+                    "br" => {
+                        blocks.push(self.parse_br(&child));
+                    }
+                    "hr" => {
+                        blocks.push(self.parse_hr(&child));
+                    }
+                    _ => {
+                        if !child_tag_name.is_empty() {
+                            dbg!(format!("Unhandled tag: {}", child_tag_name));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Remove empty blocks and then join them with double newline
+        blocks
+            .iter()
+            .filter(|x| !x.trim().is_empty())
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join("\n\n")
+    }
+
+    pub fn to_plain_text(&self) -> String {
+        // Get the top element
+        if let Some(top_element) = self.get_top_element() {
+            // Get the block elements
+            normalize_text(&self.parse_block_element(&top_element).trim().to_string()) + "\n"
+        } else {
+            "".to_string()
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -804,5 +1217,21 @@ mod tests {
 
         let result = parser.to_markdown();
         assert_eq!(result, "This is a test.\n\n*You* are not here today.\n");
+    }
+
+    // test text for dol 001
+    #[test]
+    fn test_text_dol_001() {
+        // load from CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let file_path = path::Path::new(manifest_dir).join("resources/entrepre.htm");
+        let sample = fs::read_to_string(file_path).unwrap();
+
+        // parse the file
+        let parser = HtmlToPlainTextParser::new(ParserConfig::new(None, true, true), &sample);
+        let result = dbg!(parser.to_plain_text());
+
+        // check for 'Microenterprise organizations include capital' in the markdown
+        assert!(result.contains("Microenterprise organizations include capital"));
     }
 }

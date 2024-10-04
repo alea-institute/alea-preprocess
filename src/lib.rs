@@ -1023,7 +1023,18 @@ mod alea_preprocess {
             #[pymodule(submodule)]
             mod conversion {
                 use super::*;
-                use crate::parsers::html::conversion::{HtmlToMarkdownParser, ParserConfig};
+                use crate::parsers::html::conversion::{HtmlToMarkdownParser, HtmlToPlainTextParser, ParserConfig};
+
+                #[pyfunction]
+                pub fn extract_buffer_text(
+                    buffer: &str
+                ) -> String {
+                    let parser = HtmlToPlainTextParser::new(
+                        ParserConfig::new(None, false, false),
+                        buffer,
+                    );
+                    parser.to_plain_text()
+                }
 
                 #[pyfunction]
                 pub fn extract_buffer_markdown(

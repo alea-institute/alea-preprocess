@@ -1,3 +1,15 @@
+def extract_buffer_text(buffer: str) -> str:
+    """
+    Extracts the text representation of the HTML buffer.
+
+    Args:
+        buffer (str): The HTML buffer.
+
+    Returns:
+        str: The text representation of the HTML buffer.
+    """
+    ...
+
 def extract_buffer_markdown(
     buffer: str, output_links: bool, output_images: bool
 ) -> str:
