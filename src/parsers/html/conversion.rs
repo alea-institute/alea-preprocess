@@ -607,7 +607,6 @@ impl<'a> HtmlToMarkdownParser<'a> {
     }
 }
 
-
 /// Normalize the plain text output.
 /// Arguments:
 /// - text: The text to clean up.
@@ -626,7 +625,6 @@ pub fn normalize_text(text: &str) -> String {
         .replace("\u{200C}", "")
         .to_string()
 }
-
 
 pub struct HtmlToPlainTextParser<'a> {
     config: ParserConfig,
@@ -829,11 +827,8 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
                     match list_child_tag_name.as_str() {
                         "ul" | "ol" | "dl" => {
-                            list_item_elements.push(
-                                self.parse_list(&list_child, level + 1)
-                                    .trim()
-                                    .to_string(),
-                            );
+                            list_item_elements
+                                .push(self.parse_list(&list_child, level + 1).trim().to_string());
                             sublist = true;
                         }
                         _ => {
@@ -860,7 +855,11 @@ impl<'a> HtmlToPlainTextParser<'a> {
     pub fn parse_table(&self, node: &tl::Node) -> String {
         let mut table_text = String::new();
 
-        for row in self.get_children(node).iter().filter(|child| get_tag_name(child) == "tr") {
+        for row in self
+            .get_children(node)
+            .iter()
+            .filter(|child| get_tag_name(child) == "tr")
+        {
             let mut row_text = String::new();
             for cell in self
                 .get_children(row)
@@ -1018,7 +1017,6 @@ impl<'a> HtmlToPlainTextParser<'a> {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
