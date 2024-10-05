@@ -5,6 +5,9 @@
 # 1. Run `poetry run maturin build --release` to build the wheel
 # 2. Build the docker image to copy `target/wheels/*.whl` to the image
 
+# Clean up the previous builds
+rm -rf target/wheels
+
 # Build the wheel
 poetry run maturin build --release \
   && \

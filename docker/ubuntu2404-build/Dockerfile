@@ -39,6 +39,7 @@ RUN cd /app
 # copy the poetry configuration \
 COPY pyproject.toml poetry.lock ./
 COPY Cargo.toml Cargo.lock ./
+COPY README.md ./
 
 # build the poetry environment
 RUN bash -l -c "poetry install --no-root"
