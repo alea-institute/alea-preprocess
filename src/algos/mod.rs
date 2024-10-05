@@ -7,9 +7,9 @@
 ///
 pub mod hashing;
 pub mod ngrams;
+pub mod segmentation;
 pub mod similarity;
 pub mod splitting;
 pub mod tokenizers;
 pub mod unicode;
-
-pub mod segmentation;
+pub mod uu;

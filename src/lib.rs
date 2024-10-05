@@ -857,6 +857,32 @@ mod alea_preprocess {
         }
 
         #[pymodule]
+        mod uu {
+            use super::*;
+
+            #[pyfunction]
+            fn encode_buffer(buffer: &[u8], name: &str, mode: u32) -> String {
+                crate::algos::uu::encode_buffer(buffer, name, mode).unwrap()
+            }
+
+            #[pyfunction]
+            fn decode_buffer<'a>(
+                py: Python<'a>,
+                buffer: &'a str,
+            ) -> PyResult<(String, Bound<'a, PyBytes>)> {
+                match crate::algos::uu::decode_buffer(buffer) {
+                    Ok((name, data)) => {
+                        let py_bytes = PyBytes::new_bound(py, &data);
+                        Ok((name, py_bytes))
+                    }
+                    Err(e) => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                        e.to_string(),
+                    )),
+                }
+            }
+        }
+
+        #[pymodule]
         mod splitting {
             use super::*;
 
@@ -1023,16 +1049,14 @@ mod alea_preprocess {
             #[pymodule(submodule)]
             mod conversion {
                 use super::*;
-                use crate::parsers::html::conversion::{HtmlToMarkdownParser, HtmlToPlainTextParser, ParserConfig};
+                use crate::parsers::html::conversion::{
+                    HtmlToMarkdownParser, HtmlToPlainTextParser, ParserConfig,
+                };
 
                 #[pyfunction]
-                pub fn extract_buffer_text(
-                    buffer: &str
-                ) -> String {
-                    let parser = HtmlToPlainTextParser::new(
-                        ParserConfig::new(None, false, false),
-                        buffer,
-                    );
+                pub fn extract_buffer_text(buffer: &str) -> String {
+                    let parser =
+                        HtmlToPlainTextParser::new(ParserConfig::new(None, false, false), buffer);
                     parser.to_plain_text()
                 }
 
