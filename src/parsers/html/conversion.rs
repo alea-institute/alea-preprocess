@@ -225,7 +225,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join("")
+            .join(" ")
     }
 
     pub fn parse_inline_element(&self, node: &tl::Node) -> String {
@@ -269,7 +269,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join("")
+            .join(" ")
     }
 
     pub fn parse_heading(&self, node: &tl::Node) -> String {
@@ -334,9 +334,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
                 if sublist {
                     // indent is handled inside the next level
-                    list_value = format!("{}", list_item_elements.join(""));
+                    list_value = format!("{}", list_item_elements.join(" "));
                 } else {
-                    list_value = format!("{}- {}", indent, list_item_elements.join(""));
+                    list_value = format!("{}- {}", indent, list_item_elements.join(" "));
                 }
             } else {
                 list_value = format!("{}{}", indent, self.parse_inline_element(&child));

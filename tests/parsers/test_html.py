@@ -36,17 +36,17 @@ def test_example_file1():
 
     assert "# Our blog\n" in output
     assert (
-        "Don't be shy. We'd love to hear from you.[Contact us](/forms/contact)"
+        "Don't be shy. We'd love to hear from you. [Contact us](/forms/contact)"
         in output
     )
 
 
-def test_example_treasury():
+def test_example_treasury_markdown():
     output = alea_preprocess.parsers.html.conversion.extract_buffer_markdown(
-        open("resources/treasury.html").read(), output_links=True, output_images=True
+        open("resources/treasury.html").read(), True, True
     )
 
-    with open("/tmp/test.txt", "wt") as output_file:
+    with open("/tmp/test-treasury.txt", "wt") as output_file:
         output_file.write(output)
 
     assert "#block-content-homepage-hero" not in output
@@ -56,7 +56,18 @@ def test_example_treasury():
     )
 
 
-def test_example_dol():
+def test_example_treasury_text():
+    output = alea_preprocess.parsers.html.conversion.extract_buffer_text(
+        open("resources/treasury.html").read()
+    )
+
+    assert (
+        "U.S. Department of the Treasury Announces Maine Will Join IRS Direct File for Filing Season 2025"
+        in output
+    )
+
+
+def test_example_dol_markdown():
     output = alea_preprocess.parsers.html.conversion.extract_buffer_markdown(
         open("resources/entrepre.htm").read(), output_links=True, output_images=True
     )
@@ -68,5 +79,8 @@ def test_example_dol_text():
     output = alea_preprocess.parsers.html.conversion.extract_buffer_text(
         open("resources/entrepre.htm").read()
     )
+
+    with open("/tmp/test.txt", "wt", encoding="utf-8") as output_file:
+        output_file.write(output)
 
     assert "Microenterprise organizations include capital" in output
