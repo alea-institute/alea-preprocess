@@ -165,31 +165,31 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(self.parse_block_element(&child));
+                    elements.push(self.parse_block_element(&child) + "\n");
                 }
                 "div" => {
-                    elements.push(self.parse_div_element(&child));
+                    elements.push(self.parse_div_element(&child) + "\n");
                 }
                 "span" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
-                    elements.push(self.parse_paragraph(&child));
+                    elements.push(self.parse_paragraph(&child) + "\n");
                 }
                 "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                    elements.push(self.parse_heading(&child));
+                    elements.push(self.parse_heading(&child) + "\n");
                 }
-                "ul" | "ol" | "dl" => {
-                    elements.push(self.parse_list(&child, 0));
+                "ul" | "ol" | "dl" | "dd" | "dt" => {
+                    elements.push(self.parse_list(&child, 0) + "\n");
                 }
                 "table" => {
-                    elements.push(self.parse_table(&child));
+                    elements.push(self.parse_table(&child) + "\n");
                 }
                 "blockquote" => {
-                    elements.push(self.parse_blockquote(&child));
+                    elements.push(self.parse_blockquote(&child) + "\n");
                 }
                 "pre" => {
-                    elements.push(self.parse_pre(&child));
+                    elements.push(self.parse_pre(&child) + "\n");
                 }
                 "code" => {
                     elements.push(self.parse_code(&child));
@@ -225,14 +225,22 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join(" ")
+            .join("")
     }
 
     pub fn parse_inline_element(&self, node: &tl::Node) -> String {
         let mut elements: Vec<String> = Vec::new();
+        let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
         if let Some(text_node) = node.as_raw() {
-            elements.push(text_node.as_utf8_str().to_string());
+            let element_text = text_node.as_utf8_str().to_string();
+
+            // remove newlines if it's not a pre or code tag
+            if tag_name != "pre" && tag_name != "code" {
+                elements.push(element_text.replace("\n", "").to_string());
+            } else {
+                elements.push(element_text.to_string());
+            }
         }
 
         for child in self.get_children(node) {
@@ -258,7 +266,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
                 "br" => elements.push(self.parse_br(&child)),
-                "ul" | "ol" | "dl" => elements.push(self.parse_list(&child, 0)),
+                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                    elements.push(self.parse_list(&child, 0) + "\n");
+                },
                 _ => elements.push(self.parse_inline_element(&child)),
             }
         }
@@ -269,7 +279,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join(" ")
+            .join("")
     }
 
     pub fn parse_heading(&self, node: &tl::Node) -> String {
@@ -318,7 +328,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     }
 
                     match list_child_tag_name.as_str() {
-                        "ul" | "ol" | "dl" => {
+                        "ul" | "ol" | "dl" | "dt" | "dd" => {
                             list_item_elements.push(
                                 self.parse_list(&list_child, level + 1)
                                     .trim_ascii_end()
@@ -528,28 +538,28 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 match child_tag_name.as_str() {
                     "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
                     | "nav" => {
-                        blocks.push(self.parse_block_element(&child));
+                        blocks.push(self.parse_block_element(&child) + "\n");
                     }
                     "div" => {
-                        blocks.push(self.parse_div_element(&child));
+                        blocks.push(self.parse_div_element(&child) + "\n");
                     }
                     "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                        blocks.push(self.parse_heading(&child));
+                        blocks.push(self.parse_heading(&child) + "\n");
                     }
                     "p" => {
-                        blocks.push(self.parse_paragraph(&child));
+                        blocks.push(self.parse_paragraph(&child) + "\n");
                     }
-                    "ul" | "ol" | "dl" => {
-                        blocks.push(self.parse_list(&child, 0));
+                    "ul" | "ol" | "dl" | "dd" | "dt" => {
+                        blocks.push(self.parse_list(&child, 0) + "\n");
                     }
                     "table" => {
-                        blocks.push(self.parse_table(&child));
+                        blocks.push(self.parse_table(&child) + "\n");
                     }
                     "blockquote" => {
-                        blocks.push(self.parse_blockquote(&child));
+                        blocks.push(self.parse_blockquote(&child) + "\n");
                     }
                     "pre" => {
-                        blocks.push(self.parse_pre(&child));
+                        blocks.push(self.parse_pre(&child) + "\n");
                     }
                     "code" => {
                         blocks.push(self.parse_code(&child));
@@ -580,7 +590,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     }
                     _ => {
                         if child_tag_name.len() > 0 {
-                            dbg!(format!("Unhandled tag: {}", child_tag_name));
+                            format!("Unhandled tag: {}", child_tag_name);
                         }
                     }
                 }
@@ -593,7 +603,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join("\n\n")
+            .join("\n")
     }
 
     pub fn to_markdown(&self) -> String {
@@ -698,31 +708,31 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(self.parse_block_element(&child));
+                    elements.push(self.parse_block_element(&child) + "\n");
                 }
                 "div" => {
-                    elements.push(self.parse_div_element(&child));
+                    elements.push(self.parse_div_element(&child) + "\n");
                 }
                 "span" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
-                    elements.push(self.parse_paragraph(&child));
+                    elements.push(self.parse_paragraph(&child) + "\n");
                 }
                 "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                    elements.push(self.parse_heading(&child));
+                    elements.push(self.parse_heading(&child) + "\n");
                 }
-                "ul" | "ol" | "dl" => {
-                    elements.push(self.parse_list(&child, 0));
+                "ul" | "ol" | "dl" | "dd" | "dt" => {
+                    elements.push(self.parse_list(&child, 0) + "\n");
                 }
                 "table" => {
-                    elements.push(self.parse_table(&child));
+                    elements.push(self.parse_table(&child) + "\n");
                 }
                 "blockquote" => {
-                    elements.push(self.parse_blockquote(&child));
+                    elements.push(self.parse_blockquote(&child) + "\n");
                 }
                 "pre" => {
-                    elements.push(self.parse_pre(&child));
+                    elements.push(self.parse_pre(&child) + "\n");
                 }
                 "code" => {
                     elements.push(self.parse_code(&child));
@@ -758,14 +768,22 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join(" ")
+            .join("")
     }
 
     pub fn parse_inline_element(&self, node: &tl::Node) -> String {
         let mut elements: Vec<String> = Vec::new();
+        let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
         if let Some(text_node) = node.as_raw() {
-            elements.push(text_node.as_utf8_str().to_string());
+            let element_text = text_node.as_utf8_str().to_string();
+
+            // remove newlines if it's not a pre or code tag
+            if tag_name != "pre" && tag_name != "code" {
+                elements.push(element_text.replace("\n", "").to_string());
+            } else {
+                elements.push(element_text.to_string());
+            }
         }
 
         for child in self.get_children(node) {
@@ -779,7 +797,10 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
                 "br" => elements.push(self.parse_br(&child)),
-                "ul" | "ol" | "dl" => elements.push(self.parse_list(&child, 0)),
+                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                    elements.push(self.parse_list(&child, 0));
+                    elements.push("\n".to_string());
+                },
                 _ => elements.push(self.parse_inline_element(&child)),
             }
         }
@@ -826,7 +847,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     }
 
                     match list_child_tag_name.as_str() {
-                        "ul" | "ol" | "dl" => {
+                        "ul" | "ol" | "dl" | "dt" | "dd" => {
                             list_item_elements
                                 .push(self.parse_list(&list_child, level + 1).trim().to_string());
                             sublist = true;
@@ -939,28 +960,28 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 match child_tag_name.as_str() {
                     "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
                     | "nav" => {
-                        blocks.push(self.parse_block_element(&child));
+                        blocks.push(self.parse_block_element(&child) + "\n");
                     }
                     "div" => {
-                        blocks.push(self.parse_div_element(&child));
+                        blocks.push(self.parse_div_element(&child) + "\n");
                     }
                     "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                        blocks.push(self.parse_heading(&child));
+                        blocks.push(self.parse_heading(&child) + "\n");
                     }
                     "p" => {
-                        blocks.push(self.parse_paragraph(&child));
+                        blocks.push(self.parse_paragraph(&child) + "\n");
                     }
-                    "ul" | "ol" | "dl" => {
-                        blocks.push(self.parse_list(&child, 0));
+                    "ul" | "ol" | "dl" | "dt" | "dd" => {
+                        blocks.push(self.parse_list(&child, 0) + "\n");
                     }
                     "table" => {
-                        blocks.push(self.parse_table(&child));
+                        blocks.push(self.parse_table(&child) + "\n");
                     }
                     "blockquote" => {
-                        blocks.push(self.parse_blockquote(&child));
+                        blocks.push(self.parse_blockquote(&child) + "\n");
                     }
                     "pre" => {
-                        blocks.push(self.parse_pre(&child));
+                        blocks.push(self.parse_pre(&child) + "\n");
                     }
                     "code" => {
                         blocks.push(self.parse_code(&child));
@@ -991,7 +1012,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     }
                     _ => {
                         if !child_tag_name.is_empty() {
-                            dbg!(format!("Unhandled tag: {}", child_tag_name));
+                            format!("Unhandled tag: {}", child_tag_name);
                         }
                     }
                 }
@@ -1004,7 +1025,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join("\n\n")
+            .join("\n")
     }
 
     pub fn to_plain_text(&self) -> String {
@@ -1022,6 +1043,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
 mod tests {
     use super::*;
     use std::fs;
+    use std::io::Write;
     use std::path;
 
     fn get_sample_single_p() -> String {
@@ -1173,6 +1195,10 @@ mod tests {
         // parse the file
         let parser = HtmlToMarkdownParser::new(ParserConfig::new(None, true, true), &sample);
         let result = dbg!(parser.to_markdown());
+
+        let mut file = fs::File::create("/tmp/xyz").unwrap();
+        file.write_all(result.as_bytes()).unwrap();
+
         assert!(result.contains("\n\n# Our blog\n\nWhat we're reading, thinking, and doing.\n\n[press release - ](/blog/tags/press release)"));
     }
 

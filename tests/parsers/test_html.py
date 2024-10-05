@@ -34,9 +34,13 @@ def test_example_file1():
         open("resources/file1.html").read(), output_links=True, output_images=True
     )
 
+    # write to /tmp/test.txt
+    with open("/tmp/test.md", "wt") as output_file:
+        output_file.write(output)
+
     assert "# Our blog\n" in output
     assert (
-        "Don't be shy. We'd love to hear from you. [Contact us](/forms/contact)"
+        "Don't be shy. We'd love to hear from you.\n\n[Contact us](/forms/contact)"
         in output
     )
 
