@@ -178,7 +178,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "div" => {
                     elements.push(self.parse_div_element(&child) + "\n");
                 }
-                "span" => {
+                "span" | "time" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
@@ -652,7 +652,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     }
                     _ => {
                         if !child_tag_name.is_empty() {
-                            dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                            // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
                             blocks.push(self.parse_block_element(&child) + "\n");
                         }
                     }
@@ -784,7 +784,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 "div" => {
                     elements.push(self.parse_div_element(&child) + "\n");
                 }
-                "span" => {
+                "span" | "time" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
@@ -831,7 +831,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 }
                 _ => {
                     if !child_tag_name.is_empty() {
-                        dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                        // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
                         elements.push(self.parse_block_element(&child) + "\n");
                     }
                 }
