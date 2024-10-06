@@ -140,11 +140,19 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
     pub fn get_top_element(&self) -> Option<tl::Node> {
         // look for elements in this priority order:
-        // - main
-        // - body
-        // - html
-        for element in ["main", "body", "html"].iter() {
+        // - main or MAIN
+        // - body or BODY
+        // - html or HTML
+        // set tag vec
+        let tags = ["main", "body", "html"];
+        for element in tags.iter() {
+            // try lowercase
             if let Some(node) = self.get_first_selector(element) {
+                return Some(node.clone());
+            }
+
+            // try uppercase
+            if let Some(node) = self.get_first_selector(&element.to_ascii_uppercase()) {
                 return Some(node.clone());
             }
         }
@@ -215,7 +223,12 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "hr" => {
                     elements.push(self.parse_hr(&child));
                 }
-                _ => continue,
+                _ => {
+                    if !child_tag_name.is_empty() {
+                        dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                        elements.push(self.parse_block_element(&child) + "\n");
+                    }
+                }
             }
         }
 
@@ -589,8 +602,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
                         blocks.push(self.parse_hr(&child));
                     }
                     _ => {
-                        if child_tag_name.len() > 0 {
-                            format!("Unhandled tag: {}", child_tag_name);
+                        if !child_tag_name.is_empty() {
+                            dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                            blocks.push(self.parse_block_element(&child) + "\n");
                         }
                     }
                 }
@@ -683,12 +697,20 @@ impl<'a> HtmlToPlainTextParser<'a> {
     }
 
     pub fn get_top_element(&self) -> Option<tl::Node> {
-        // Look for elements in this priority order:
-        // - main
-        // - body
-        // - html
-        for element in ["main", "body", "html"].iter() {
+        // look for elements in this priority order:
+        // - main or MAIN
+        // - body or BODY
+        // - html or HTML
+        // set tag vec
+        let tags = ["main", "body", "html"];
+        for element in tags.iter() {
+            // try lowercase
             if let Some(node) = self.get_first_selector(element) {
+                return Some(node.clone());
+            }
+
+            // try uppercase
+            if let Some(node) = self.get_first_selector(&element.to_ascii_uppercase()) {
                 return Some(node.clone());
             }
         }
@@ -758,7 +780,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 "hr" => {
                     elements.push(self.parse_hr(&child));
                 }
-                _ => continue,
+                _ => {
+                    if !child_tag_name.is_empty() {
+                        dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                        elements.push(self.parse_block_element(&child) + "\n");
+                    }
+                }
             }
         }
 
@@ -1012,7 +1039,8 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     }
                     _ => {
                         if !child_tag_name.is_empty() {
-                            format!("Unhandled tag: {}", child_tag_name);
+                            dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                            blocks.push(self.parse_block_element(&child) + "\n");
                         }
                     }
                 }
@@ -1257,5 +1285,20 @@ mod tests {
 
         // check for 'Microenterprise organizations include capital' in the markdown
         assert!(result.contains("Microenterprise organizations include capital"));
+    }
+
+    #[test]
+    fn test_reg_doc_001() {
+        // load from CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let file_path = path::Path::new(manifest_dir).join("resources/reg_doc_001.html");
+        let sample = fs::read_to_string(file_path).unwrap();
+
+        // parse the file
+        let parser = HtmlToPlainTextParser::new(ParserConfig::new(None, true, true), &sample);
+        let result = dbg!(parser.to_plain_text());
+
+        // check for 'This section of the FEDERAL REGISTER' in the markdown
+        assert!(result.contains("This section of the FEDERAL REGISTER"));
     }
 }
