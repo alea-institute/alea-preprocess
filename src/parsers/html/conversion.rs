@@ -225,7 +225,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 }
                 _ => {
                     if !child_tag_name.is_empty() {
-                        dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                        // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
                         elements.push(self.parse_block_element(&child) + "\n");
                     }
                 }
@@ -233,6 +233,54 @@ impl<'a> HtmlToMarkdownParser<'a> {
         }
 
         // trim empty elements and return joined
+        elements
+            .iter()
+            .filter(|x| !x.trim().is_empty())
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join("")
+    }
+
+    pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
+        let mut elements: Vec<String> = Vec::new();
+        let tag_name = get_tag_name(&node).to_ascii_lowercase();
+
+        if let Some(text_node) = node.as_raw() {
+            let element_text = text_node.as_utf8_str().to_string();
+            elements.push(element_text.to_string());
+        }
+
+        for child in self.get_children(node) {
+            let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+            if self.config.exclude_tags.contains(&child_tag_name) {
+                continue;
+            }
+
+            match child_tag_name.as_str() {
+                "strong" | "b" => {
+                    // parse strong
+                    elements.push(format!("**{}**", self.parse_pre_inline_element(&child).trim()))
+                }
+                "em" | "i" => {
+                    // parse emphasis
+                    elements.push(format!("*{}*", self.parse_pre_inline_element(&child).trim()))
+                }
+                "s" | "strike" | "del" => {
+                    // parse strikethrough
+                    elements.push(format!("~~{}~~", self.parse_pre_inline_element(&child).trim()))
+                }
+                "a" => elements.push(self.parse_link(&child)),
+                "img" => elements.push(self.parse_image(&child)),
+                "br" => elements.push(self.parse_br(&child)),
+                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                    elements.push(self.parse_list(&child, 0) + "\n");
+                },
+                _ => elements.push(self.parse_pre_inline_element(&child)),
+            }
+        }
+
+        // filter out empty elements and join
         elements
             .iter()
             .filter(|x| !x.trim().is_empty())
@@ -474,7 +522,8 @@ impl<'a> HtmlToMarkdownParser<'a> {
     }
 
     pub fn parse_pre(&self, node: &tl::Node) -> String {
-        format!("```\n{}\n```\n", self.parse_inline_element(node))
+        let content = self.parse_pre_inline_element(node);
+        format!("```\n{}\n```\n", content.trim_end())
     }
 
     pub fn parse_code(&self, node: &tl::Node) -> String {
@@ -798,6 +847,54 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .join("")
     }
 
+    pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
+        let mut elements: Vec<String> = Vec::new();
+        let tag_name = get_tag_name(&node).to_ascii_lowercase();
+
+        if let Some(text_node) = node.as_raw() {
+            let element_text = text_node.as_utf8_str().to_string();
+            elements.push(element_text.to_string());
+        }
+
+        for child in self.get_children(node) {
+            let child_tag_name = get_tag_name(&child).to_ascii_lowercase();
+
+            if self.config.exclude_tags.contains(&child_tag_name) {
+                continue;
+            }
+
+            match child_tag_name.as_str() {
+                "strong" | "b" => {
+                    // parse strong
+                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                }
+                "em" | "i" => {
+                    // parse emphasis
+                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                }
+                "s" | "strike" | "del" => {
+                    // parse strikethrough
+                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                }
+                "a" => elements.push(self.parse_link(&child)),
+                "img" => elements.push(self.parse_image(&child)),
+                "br" => elements.push(self.parse_br(&child)),
+                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                    elements.push(self.parse_list(&child, 0) + "\n");
+                },
+                _ => elements.push(self.parse_pre_inline_element(&child)),
+            }
+        }
+
+        // filter out empty elements and join
+        elements
+            .iter()
+            .filter(|x| !x.trim().is_empty())
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join("")
+    }
+
     pub fn parse_inline_element(&self, node: &tl::Node) -> String {
         let mut elements: Vec<String> = Vec::new();
         let tag_name = get_tag_name(&node).to_ascii_lowercase();
@@ -929,8 +1026,8 @@ impl<'a> HtmlToPlainTextParser<'a> {
     }
 
     pub fn parse_pre(&self, node: &tl::Node) -> String {
-        let code = self.parse_inline_element(node);
-        format!("\n{}\n", code)
+        let content = self.parse_pre_inline_element(node);
+        format!("\n{}\n", content.trim_end())
     }
 
     pub fn parse_code(&self, node: &tl::Node) -> String {
@@ -1039,7 +1136,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     }
                     _ => {
                         if !child_tag_name.is_empty() {
-                            dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
+                            // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
                             blocks.push(self.parse_block_element(&child) + "\n");
                         }
                     }
@@ -1299,6 +1396,6 @@ mod tests {
         let result = dbg!(parser.to_plain_text());
 
         // check for 'This section of the FEDERAL REGISTER' in the markdown
-        assert!(result.contains("This section of the FEDERAL REGISTER"));
+        assert!(result.contains("[Federal Register: June 15, 2010 (Volume 75, Number 114)]\n[Proposed Rules]\n"));
     }
 }
