@@ -28,11 +28,26 @@ pub fn calculate_percentiles(values: &[f32]) -> GapPercentiles {
     sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let len = sorted_values.len();
 
+    /*
     let percentile_10 = sorted_values[(len as f32 * 0.1) as usize];
     let percentile_25 = sorted_values[(len as f32 * 0.25) as usize];
     let percentile_50 = sorted_values[(len as f32 * 0.5) as usize];
     let percentile_75 = sorted_values[(len as f32 * 0.75) as usize];
     let percentile_90 = sorted_values[(len as f32 * 0.9) as usize];
+     */
+
+    // safely handle based on th length
+    let ix10 = (len as f32 * 0.1) as usize;
+    let ix25 = (len as f32 * 0.25) as usize;
+    let ix50 = (len as f32 * 0.5) as usize;
+    let ix75 = (len as f32 * 0.75) as usize;
+    let ix90 = (len as f32 * 0.9) as usize;
+
+    let percentile_10 = if ix10 < len { sorted_values[ix10] } else { 0.0 };
+    let percentile_25 = if ix25 < len { sorted_values[ix25] } else { 0.0 };
+    let percentile_50 = if ix50 < len { sorted_values[ix50] } else { 0.0 };
+    let percentile_75 = if ix75 < len { sorted_values[ix75] } else { 0.0 };
+    let percentile_90 = if ix90 < len { sorted_values[ix90] } else { 0.0 };
 
     GapPercentiles {
         p10: percentile_10,
@@ -115,10 +130,25 @@ pub fn gap_to_string(
 /// - last_y: The y-coordinate of the last text block.
 /// Returns:
 /// - A tuple of the horizontal and vertical gaps between the two text blocks.
-/// # Priority order and reasoning:
 pub fn get_gaps(text_object: &PdfPageTextObject, last_x: f32, last_y: f32) -> (f32, f32) {
-    let gap_x = (text_object.bounds().unwrap().left.value - last_x) / get_font_size(&text_object);
+    let font_size = get_font_size(&text_object);
+    let font_height = get_font_height(&text_object);
+
+    // check edge cases with x/y and font size
+    if last_x == 0.0 && last_y == 0.0 {
+        return (0.0, 0.0);
+    }
+
+    if font_size == 0.0 {
+        return (0.0, 0.0);
+    }
+
+    if font_height == 0.0 {
+        return (0.0, 0.0);
+    }
+
+    let gap_x = (text_object.bounds().unwrap().left.value - last_x) / font_size;
     let gap_y = (last_y - text_object.bounds().unwrap().top.value - get_font_height(&text_object))
-        / get_font_height(&text_object);
+        / font_height;
     (gap_x, gap_y)
 }
