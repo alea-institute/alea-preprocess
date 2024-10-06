@@ -9,6 +9,6 @@ from .alea_preprocess import algos, io, parsers
 __all__ = ["algos", "io", "parsers"]
 
 # metadata fields
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 __author__ = "ALEA Institute (https://aleainstitute.ai)"
 __license__ = "MIT"
