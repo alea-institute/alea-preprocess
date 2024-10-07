@@ -71,3 +71,10 @@ def test_recursive_content_markdown_file():
         str(RESOURCE_PATH / "test1.docx"), TEST_SERVER_URL, True, True
     )
     assert "**Regulatory Impact Analysis**\n" in results[0]
+
+
+def test_recursive_content_markdown_file_pdf():
+    results = alea_preprocess.parsers.tika.client.get_recursive_content_markdown_file(
+        str(RESOURCE_PATH / "MVDefectsandRecall.pdf"), TEST_SERVER_URL, True, True
+    )
+    assert "(NHTSA)" in results[0]
