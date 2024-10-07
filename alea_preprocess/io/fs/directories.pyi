@@ -1,4 +1,6 @@
-from typing import List
+from typing import List, Tuple
+
+from alea_preprocess.io.fs.file_info import FileInfo
 
 def get_files(path: str) -> List[str]:
     """
@@ -33,5 +35,17 @@ def get_entries(path: str) -> List[str]:
 
     Returns:
         List[str]: A list of file and directory paths.
+    """
+    ...
+
+def get_all_file_info(path: str) -> List[Tuple[str, FileInfo]]:
+    """
+    Get all file info from bytes buffer.
+
+    Args:
+        path (str): File path.
+
+    Returns:
+        List of FileInfo.
     """
     ...

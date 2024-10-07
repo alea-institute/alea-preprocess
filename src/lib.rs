@@ -998,6 +998,9 @@ mod alea_preprocess {
         mod fs {
             use super::*;
 
+            #[pymodule_export]
+            use crate::io::fs::file_info::FileInfo;
+
             #[pymodule(submodule)]
             mod directories {
                 use super::*;
@@ -1016,14 +1019,16 @@ mod alea_preprocess {
                 pub fn get_entries(path: &str) -> Vec<String> {
                     crate::io::fs::directories::get_entries(path)
                 }
+
+                #[pyfunction]
+                pub fn get_all_file_info(path: &str) -> Vec<(String, FileInfo)> {
+                    crate::io::fs::directories::get_all_file_info(path)
+                }
             }
 
             #[pymodule(submodule)]
             mod file_info {
                 use super::*;
-
-                #[pymodule_export]
-                use crate::io::fs::file_info::FileInfo;
 
                 #[pyfunction]
                 pub fn get_file_info_from_buffer(buffer: &[u8]) -> FileInfo {

@@ -27,3 +27,9 @@ def test_entries():
     assert len(results) > 5
     assert str(RESOURCE_PATH.absolute()) in results
     assert str(FILE_PATH.absolute()) in results
+
+
+def test_get_all_file_info():
+    test_path = RESOURCE_PATH
+    file_info_list = alea_preprocess.io.fs.directories.get_all_file_info(str(test_path))
+    assert len(file_info_list) > 5

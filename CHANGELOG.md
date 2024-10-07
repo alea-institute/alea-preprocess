@@ -1,3 +1,6 @@
+### 0.1.10: 2024-10-07
+- Adding efficient directory traversal and file type detection
+
 ### 0.1.9: 2024-10-07
 - Safer handling of malformed/strange PDF files
 - Improved HTML/Markdown parsing

@@ -1,4 +1,5 @@
 use walkdir::WalkDir;
+use crate::io::fs::file_info::{FileInfo, get_file_info_from_file};
 
 pub fn get_files(path: &str) -> Vec<String> {
     WalkDir::new(path)
@@ -23,6 +24,18 @@ pub fn get_entries(path: &str) -> Vec<String> {
         .into_iter()
         .filter_map(|e| e.ok())
         .map(|e| e.path().display().to_string())
+        .collect()
+}
+
+//pub fn get_all_file_info(path: &str) -> Vec<FileInfo> {
+// tuple of (path, FileInfo)
+pub fn get_all_file_info(path: &str) -> Vec<(String, FileInfo)> {
+    // run get_file_info_from_file on all
+    WalkDir::new(path)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .map(|e| (e.path().display().to_string(), get_file_info_from_file(&e.path().display().to_string())))
         .collect()
 }
 
