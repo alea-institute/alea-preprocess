@@ -178,27 +178,55 @@ pub fn extract_text_positions(pdf_document: &PdfDocument) -> String {
 }
 
 pub fn extract_buffer_text(buffer: &[u8]) -> String {
+    // init pdf parser
     let pdf_parser = Pdfium::default();
-    let pdf_document = pdf_parser.load_pdf_from_byte_slice(buffer, None).unwrap();
-    extract_text_simple(&pdf_document)
+
+    // safely parse
+    let result = match pdf_parser.load_pdf_from_byte_slice(buffer, None) {
+        Err(_) => String::new(),
+        Ok(pdf_document) => extract_text_simple(&pdf_document),
+    };
+
+    result
 }
 
 pub fn extract_file_text(file_path: &str) -> String {
+    // init pdf parser
     let pdf_parser = Pdfium::default();
-    let pdf_document = pdf_parser.load_pdf_from_file(file_path, None).unwrap();
-    extract_text_simple(&pdf_document)
+
+    // safely parse
+    let result = match pdf_parser.load_pdf_from_file(file_path, None) {
+        Err(_) => String::new(),
+        Ok(pdf_document) => extract_text_simple(&pdf_document),
+    };
+
+    result
 }
 
 pub fn extract_buffer_markdown(buffer: &[u8]) -> String {
+    // init pdf parser
     let pdf_parser = Pdfium::default();
-    let pdf_document = pdf_parser.load_pdf_from_byte_slice(buffer, None).unwrap();
-    extract_text_positions(&pdf_document)
+
+    // safely parse
+    let result = match pdf_parser.load_pdf_from_byte_slice(buffer, None) {
+        Err(_) => String::new(),
+        Ok(pdf_document) => extract_text_positions(&pdf_document),
+    };
+
+    result
 }
 
 pub fn extract_file_markdown(file_path: &str) -> String {
+    // init pdf parser
     let pdf_parser = Pdfium::default();
-    let pdf_document = pdf_parser.load_pdf_from_file(file_path, None).unwrap();
-    extract_text_positions(&pdf_document)
+
+    // safely parse
+    let result = match pdf_parser.load_pdf_from_file(file_path, None) {
+        Err(_) => String::new(),
+        Ok(pdf_document) => extract_text_positions(&pdf_document),
+    };
+
+    result
 }
 
 #[cfg(test)]
@@ -225,6 +253,22 @@ mod tests {
         path.push("resources");
         path.push("test4.pdf");
         path
+    }
+
+    fn get_bad_file_path() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("resources");
+        path.push("bad_file.pdf");
+        path
+    }
+
+    #[test]
+    fn test_bad_file() {
+        // get text
+        let text = extract_file_text(get_bad_file_path().to_str().unwrap());
+
+        // check for empty
+        assert!(text.is_empty());
     }
 
     #[test]

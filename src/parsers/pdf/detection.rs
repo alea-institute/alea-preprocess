@@ -4,29 +4,29 @@
 /// - Image PDF page that have been OCR'd
 /// Documents have:
 /// An entry point to all the various object collections contained in a single PDF file. These collections include:
-// PdfDocument::attachments(), an immutable collection of all the PdfAttachments in the document.
-// PdfDocument::attachments_mut(), a mutable collection of all the PdfAttachments in the document.
-// PdfDocument::bookmarks(), an immutable collection of all the PdfBookmarks in the document.
-// PdfDocument::fonts(), an immutable collection of all the PdfFonts in the document.
-// PdfDocument::fonts_mut(), a mutable collection of all the PdfFonts in the document.
-// PdfDocument::form(), an immutable reference to the PdfForm embedded in the document, if any.
-// PdfDocument::metadata(), an immutable collection of all the PdfMetadata tags in the document.
-// PdfDocument::pages(), an immutable collection of all the PdfPages in the document.
-// PdfDocument::pages_mut(), a mutable collection of all the PdfPages in the document.
-// PdfDocument::permissions(), settings relating to security handlers and document permissions for the document.
-// PdfDocument::signatures(), an immutable collection of all the PdfSignatures in the document.
+/// PdfDocument::attachments(), an immutable collection of all the PdfAttachments in the document.
+/// PdfDocument::attachments_mut(), a mutable collection of all the PdfAttachments in the document.
+/// PdfDocument::bookmarks(), an immutable collection of all the PdfBookmarks in the document.
+/// PdfDocument::fonts(), an immutable collection of all the PdfFonts in the document.
+/// PdfDocument::fonts_mut(), a mutable collection of all the PdfFonts in the document.
+/// PdfDocument::form(), an immutable reference to the PdfForm embedded in the document, if any.
+/// PdfDocument::metadata(), an immutable collection of all the PdfMetadata tags in the document.
+/// PdfDocument::pages(), an immutable collection of all the PdfPages in the document.
+/// PdfDocument::pages_mut(), a mutable collection of all the PdfPages in the document.
+/// PdfDocument::permissions(), settings relating to security handlers and document permissions for the document.
+/// PdfDocument::signatures(), an immutable collection of all the PdfSignatures in the document.
 /// Pages have:
 /// An entry point to all the various objects contained in a single PDF page. These objects include:
 /// A single page in a PdfDocument.
-// In addition to its own intrinsic properties, a PdfPage serves as the entry point to all object collections related to a single page in a document. These collections include:
-// PdfPage::annotations(), an immutable collection of all the user annotations attached to the PdfPage.
-// PdfPage::annotations_mut(), a mutable collection of all the user annotations attached to the PdfPage.
-// PdfPage::boundaries(), an immutable collection of the boundary boxes relating to the PdfPage.
-// PdfPage::boundaries_mut(), a mutable collection of the boundary boxes relating to the PdfPage.
-// PdfPage::links(), an immutable collection of the links on the PdfPage.
-// PdfPage::links_mut(), a mutable collection of the links on the PdfPage.
-// PdfPage::objects(), an immutable collection of all the displayable objects on the PdfPage.
-// PdfPage::objects_mut(), a mutable collection of all the displayable objects on the PdfPage.
+/// In addition to its own intrinsic properties, a PdfPage serves as the entry point to all object collections related to a single page in a document. These collections include:
+/// PdfPage::annotations(), an immutable collection of all the user annotations attached to the PdfPage.
+/// PdfPage::annotations_mut(), a mutable collection of all the user annotations attached to the PdfPage.
+/// PdfPage::boundaries(), an immutable collection of the boundary boxes relating to the PdfPage.
+/// PdfPage::boundaries_mut(), a mutable collection of the boundary boxes relating to the PdfPage.
+/// PdfPage::links(), an immutable collection of the links on the PdfPage.
+/// PdfPage::links_mut(), a mutable collection of the links on the PdfPage.
+/// PdfPage::objects(), an immutable collection of all the displayable objects on the PdfPage.
+/// PdfPage::objects_mut(), a mutable collection of all the displayable objects on the PdfPage.
 use pdfium_render::prelude::*;
 
 // enum for different page types
@@ -39,11 +39,12 @@ pub enum PageType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentType {
-    Unknown = 0,
-    Mixed = 1,
-    Text = 2,
-    ImagePreOCR = 3,
-    ImagePostOCR = 4,
+    Malformed = 0,
+    Unknown = 1,
+    Mixed = 2,
+    Text = 3,
+    ImagePreOCR = 4,
+    ImagePostOCR = 5,
 }
 
 // struct for object counts
@@ -163,6 +164,12 @@ pub fn detect_page_type(page: &PdfPage, document: &PdfDocument) -> PageType {
 
 pub fn detect_document_type(pdf_document: &PdfDocument) -> DocumentType {
     let mut document_type = DocumentType::Unknown;
+
+    // if there are zero pages, return Malformed
+    if pdf_document.pages().len() == 0 {
+        return DocumentType::Malformed;
+    }
+
     for page in pdf_document.pages().iter() {
         // get the page type
         let page_type = detect_page_type(&page, &pdf_document);
@@ -200,10 +207,17 @@ pub fn detect_document_type(pdf_document: &PdfDocument) -> DocumentType {
 /// Returns:
 ///  DocumentType object
 pub fn detect_buffer_type(buffer: &[u8]) -> DocumentType {
+    // init the parser
     let pdf_parser = Pdfium::default();
-    let pdf_file = pdf_parser.load_pdf_from_byte_slice(buffer, None).unwrap();
 
-    detect_document_type(&pdf_file)
+    // try to load the pdf; if it fails, return malformed; otherwise, return detected type
+    // let pdf_file = pdf_parser.load_pdf_from_byte_slice(buffer, None).unwrap();
+    let detected_type = match pdf_parser.load_pdf_from_byte_slice(buffer, None) {
+        Ok(pdf_file) => detect_document_type(&pdf_file),
+        Err(_) => DocumentType::Malformed,
+    };
+
+    detected_type
 }
 
 /// Detect the type of a file by parsing all pages, detecting each
@@ -213,10 +227,15 @@ pub fn detect_buffer_type(buffer: &[u8]) -> DocumentType {
 /// Returns:
 /// DocumentType object
 pub fn detect_file_type(file_path: &str) -> DocumentType {
+    // init the parser
     let pdf_parser = Pdfium::default();
-    let pdf_file = pdf_parser.load_pdf_from_file(file_path, None).unwrap();
 
-    detect_document_type(&pdf_file)
+    let detected_type = match pdf_parser.load_pdf_from_file(file_path, None) {
+        Ok(pdf_file) => detect_document_type(&pdf_file),
+        Err(_) => DocumentType::Malformed,
+    };
+
+    detected_type
 }
 
 #[cfg(test)]

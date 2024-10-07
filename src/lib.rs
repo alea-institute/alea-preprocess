@@ -1088,6 +1088,7 @@ mod alea_preprocess {
                 #[pyclass(eq, eq_int)]
                 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
                 pub enum PyDocumentType {
+                    Malformed = DocumentType::Malformed as isize,
                     Text = DocumentType::Text as isize,
                     ImagePreOCR = DocumentType::ImagePreOCR as isize,
                     ImagePostOCR = DocumentType::ImagePostOCR as isize,
@@ -1098,6 +1099,7 @@ mod alea_preprocess {
                 #[pyfunction]
                 pub fn detect_buffer_type(buffer: &[u8]) -> PyDocumentType {
                     match crate::parsers::pdf::detection::detect_buffer_type(buffer) {
+                        DocumentType::Malformed => PyDocumentType::Unknown,
                         DocumentType::Text => PyDocumentType::Text,
                         DocumentType::ImagePreOCR => PyDocumentType::ImagePreOCR,
                         DocumentType::ImagePostOCR => PyDocumentType::ImagePostOCR,
@@ -1109,6 +1111,7 @@ mod alea_preprocess {
                 #[pyfunction]
                 pub fn detect_file_type(file_path: &str) -> PyDocumentType {
                     match crate::parsers::pdf::detection::detect_file_type(file_path) {
+                        DocumentType::Malformed => PyDocumentType::Unknown,
                         DocumentType::Text => PyDocumentType::Text,
                         DocumentType::ImagePreOCR => PyDocumentType::ImagePreOCR,
                         DocumentType::ImagePostOCR => PyDocumentType::ImagePostOCR,

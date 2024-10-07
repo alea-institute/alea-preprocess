@@ -1,6 +1,13 @@
 import alea_preprocess
 
 
+def test_pdf_file_bad():
+    result = alea_preprocess.parsers.pdf.detection.detect_file_type(
+        "resources/bad_file.pdf"
+    )
+    assert result == alea_preprocess.parsers.pdf.detection.PyDocumentType.Unknown
+
+
 def test_pdf_file_1():
     result = alea_preprocess.parsers.pdf.detection.detect_file_type(
         "resources/test1.pdf"

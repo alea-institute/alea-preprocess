@@ -2,11 +2,12 @@ from typing import Any
 from enum import Enum
 
 class PyDocumentType(Enum):
-    Unknown = 0
-    Mixed = 1
-    Text = 2
-    ImagePreOCR = 3
-    ImagePostOCR = 4
+    Malformed = 0
+    Unknown = 1
+    Mixed = 2
+    Text = 3
+    ImagePreOCR = 4
+    ImagePostOCR = 5
 
 def detect_buffer_type(buffer: bytes) -> Any:
     """
