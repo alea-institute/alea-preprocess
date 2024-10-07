@@ -1,3 +1,7 @@
+### 0.1.9: 2024-10-07
+- Safer handling of malformed/strange PDF files
+- Improved HTML/Markdown parsing
+
 ### 0.1.8: 2024-10-06
 - Adding HTML5 <time> tag support for HTML conversions
 - Handling edge cases for PDF gap calibration with zero width/height fonts and empty pages
