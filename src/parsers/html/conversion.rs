@@ -17,7 +17,11 @@ lazy_static! {
 /// Returns:
 /// - The cleaned up markdown.
 pub fn normalize_markdown(markdown: &str) -> String {
-    RE_CLEAN_NEWLINE.replace_all(markdown, "\n\n").to_string()
+    RE_CLEAN_NEWLINE
+        .replace_all(markdown, "\n\n")
+        .replace("\n[\n", "\n[")
+        .replace("\n](", "](")
+        .to_string()
 }
 
 /// Parser configuration struct
@@ -173,19 +177,19 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(self.parse_block_element(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_block_element(&child)));
                 }
                 "div" => {
-                    elements.push(self.parse_div_element(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_div_element(&child)));
                 }
                 "span" | "time" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
-                    elements.push(self.parse_paragraph(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_paragraph(&child)));
                 }
                 "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                    elements.push(self.parse_heading(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_heading(&child)));
                 }
                 "ul" | "ol" | "dl" | "dd" | "dt" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
@@ -243,7 +247,6 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
     pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
         let mut elements: Vec<String> = Vec::new();
-        let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
         if let Some(text_node) = node.as_raw() {
             let element_text = text_node.as_utf8_str().to_string();
@@ -260,22 +263,31 @@ impl<'a> HtmlToMarkdownParser<'a> {
             match child_tag_name.as_str() {
                 "strong" | "b" => {
                     // parse strong
-                    elements.push(format!("**{}**", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "**{}**",
+                        self.parse_pre_inline_element(&child).trim()
+                    ))
                 }
                 "em" | "i" => {
                     // parse emphasis
-                    elements.push(format!("*{}*", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "*{}*",
+                        self.parse_pre_inline_element(&child).trim()
+                    ))
                 }
                 "s" | "strike" | "del" => {
                     // parse strikethrough
-                    elements.push(format!("~~{}~~", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "~~{}~~",
+                        self.parse_pre_inline_element(&child).trim()
+                    ))
                 }
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
                 "br" => elements.push(self.parse_br(&child)),
                 "ul" | "ol" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
-                },
+                }
                 _ => elements.push(self.parse_pre_inline_element(&child)),
             }
         }
@@ -312,6 +324,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
             }
 
             match child_tag_name.as_str() {
+                "p" => {
+                    elements.push(format!("\n{}\n", self.parse_inline_element(&child)));
+                }
                 "strong" | "b" => {
                     // parse strong
                     elements.push(format!("**{}**", self.parse_inline_element(&child).trim()))
@@ -327,9 +342,9 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
                 "br" => elements.push(self.parse_br(&child)),
-                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                "ul" | "ol" | "li" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
-                },
+                }
                 _ => elements.push(self.parse_inline_element(&child)),
             }
         }
@@ -609,7 +624,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                         blocks.push(self.parse_heading(&child) + "\n");
                     }
                     "p" => {
-                        blocks.push(self.parse_paragraph(&child) + "\n");
+                        blocks.push(format!("\n{}\n", self.parse_paragraph(&child)));
                     }
                     "ul" | "ol" | "dl" | "dd" | "dt" => {
                         blocks.push(self.parse_list(&child, 0) + "\n");
@@ -779,16 +794,16 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(self.parse_block_element(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_block_element(&child)));
                 }
                 "div" => {
-                    elements.push(self.parse_div_element(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_div_element(&child)));
                 }
                 "span" | "time" => {
                     elements.push(self.parse_inline_element(&child));
                 }
                 "p" => {
-                    elements.push(self.parse_paragraph(&child) + "\n");
+                    elements.push(format!("\n{}\n", self.parse_paragraph(&child)));
                 }
                 "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                     elements.push(self.parse_heading(&child) + "\n");
@@ -849,7 +864,6 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
     pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
         let mut elements: Vec<String> = Vec::new();
-        let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
         if let Some(text_node) = node.as_raw() {
             let element_text = text_node.as_utf8_str().to_string();
@@ -881,7 +895,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 "br" => elements.push(self.parse_br(&child)),
                 "ul" | "ol" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
-                },
+                }
                 _ => elements.push(self.parse_pre_inline_element(&child)),
             }
         }
@@ -918,13 +932,16 @@ impl<'a> HtmlToPlainTextParser<'a> {
             }
 
             match child_tag_name.as_str() {
+                "p" => {
+                    elements.push(format!("\n{}\n", self.parse_inline_element(&child)));
+                }
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
                 "br" => elements.push(self.parse_br(&child)),
-                "ul" | "ol" | "dl" | "dt" | "dd" => {
+                "ul" | "ol" | "li" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0));
                     elements.push("\n".to_string());
-                },
+                }
                 _ => elements.push(self.parse_inline_element(&child)),
             }
         }
@@ -935,7 +952,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .filter(|x| !x.trim().is_empty())
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
-            .join(" ")
+            .join("")
     }
 
     pub fn parse_heading(&self, node: &tl::Node) -> String {
@@ -1084,16 +1101,16 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 match child_tag_name.as_str() {
                     "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
                     | "nav" => {
-                        blocks.push(self.parse_block_element(&child) + "\n");
+                        blocks.push(format!("\n{}\n", self.parse_block_element(&child)));
                     }
                     "div" => {
-                        blocks.push(self.parse_div_element(&child) + "\n");
+                        blocks.push(format!("\n{}\n", self.parse_div_element(&child)));
                     }
                     "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
-                        blocks.push(self.parse_heading(&child) + "\n");
+                        blocks.push(format!("\n{}\n", self.parse_heading(&child)));
                     }
                     "p" => {
-                        blocks.push(self.parse_paragraph(&child) + "\n");
+                        blocks.push(format!("\n{}\n", self.parse_paragraph(&child)));
                     }
                     "ul" | "ol" | "dl" | "dt" | "dd" => {
                         blocks.push(self.parse_list(&child, 0) + "\n");
@@ -1168,7 +1185,6 @@ impl<'a> HtmlToPlainTextParser<'a> {
 mod tests {
     use super::*;
     use std::fs;
-    use std::io::Write;
     use std::path;
 
     fn get_sample_single_p() -> String {
@@ -1321,9 +1337,6 @@ mod tests {
         let parser = HtmlToMarkdownParser::new(ParserConfig::new(None, true, true), &sample);
         let result = dbg!(parser.to_markdown());
 
-        let mut file = fs::File::create("/tmp/xyz").unwrap();
-        file.write_all(result.as_bytes()).unwrap();
-
         assert!(result.contains("\n\n# Our blog\n\nWhat we're reading, thinking, and doing.\n\n[press release - ](/blog/tags/press release)"));
     }
 
@@ -1396,6 +1409,8 @@ mod tests {
         let result = dbg!(parser.to_plain_text());
 
         // check for 'This section of the FEDERAL REGISTER' in the markdown
-        assert!(result.contains("[Federal Register: June 15, 2010 (Volume 75, Number 114)]\n[Proposed Rules]\n"));
+        assert!(result.contains(
+            "[Federal Register: June 15, 2010 (Volume 75, Number 114)]\n[Proposed Rules]\n"
+        ));
     }
 }
