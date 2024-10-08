@@ -1,3 +1,6 @@
+### 0.1.11: 2024-10-08
+- Stack overflow protection for deeply nested or broken HTML conversion
+
 ### 0.1.10: 2024-10-07
 - Adding efficient directory traversal and file type detection
 
