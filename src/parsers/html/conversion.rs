@@ -108,9 +108,7 @@ pub struct HtmlToMarkdownParser<'a> {
 impl<'a> HtmlToMarkdownParser<'a> {
     pub fn new(config: ParserConfig, html_input: &'a str) -> HtmlToMarkdownParser<'a> {
         // get the vdom by parsing
-        dbg!(format!("Parsing HTML: {}", html_input.len()));
-        let dom = dbg!(tl::parse(html_input, tl::ParserOptions::default()).unwrap());
-        dbg!("Parsed HTML");
+        let dom = tl::parse(html_input, tl::ParserOptions::default()).unwrap();
 
         HtmlToMarkdownParser {
             config,

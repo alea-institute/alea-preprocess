@@ -1,4 +1,7 @@
 ### 0.1.11: 2024-10-08
+- Lower stack overflow debug verbosity
+
+### 0.1.11: 2024-10-08
 - Stack overflow protection for deeply nested or broken HTML conversion
 
 ### 0.1.10: 2024-10-07
