@@ -6,6 +6,9 @@ use tl;
 // list of standard exclude tags
 const DEFAULT_EXCLUDE_TAGS: [&str; 2] = ["script", "style"];
 
+// default max depth
+const DEFAULT_MAX_DEPTH: usize = 1024;
+
 // regex to clean up 3+ newlines
 lazy_static! {
     static ref RE_CLEAN_NEWLINE: Regex = Regex::new(r"\n{3,}").unwrap();
@@ -99,14 +102,21 @@ pub fn get_tag_attributes(node: &tl::Node) -> HashMap<String, String> {
 pub struct HtmlToMarkdownParser<'a> {
     config: ParserConfig,
     dom: tl::VDom<'a>,
+    max_depth: usize,
 }
 
 impl<'a> HtmlToMarkdownParser<'a> {
     pub fn new(config: ParserConfig, html_input: &'a str) -> HtmlToMarkdownParser<'a> {
         // get the vdom by parsing
-        let dom = tl::parse(html_input, tl::ParserOptions::default()).unwrap();
+        dbg!(format!("Parsing HTML: {}", html_input.len()));
+        let dom = dbg!(tl::parse(html_input, tl::ParserOptions::default()).unwrap());
+        dbg!("Parsed HTML");
 
-        HtmlToMarkdownParser { config, dom }
+        HtmlToMarkdownParser {
+            config,
+            dom,
+            max_depth: DEFAULT_MAX_DEPTH,
+        }
     }
 
     pub fn parser(&self) -> &'a tl::Parser {
@@ -164,7 +174,12 @@ impl<'a> HtmlToMarkdownParser<'a> {
         None
     }
 
-    pub fn parse_div_element(&self, node: &tl::Node) -> String {
+    pub fn parse_div_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         // output how we are entering this
         let mut elements: Vec<String> = Vec::new();
 
@@ -177,22 +192,25 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(format!("\n{}\n", self.parse_block_element(&child)));
+                    elements.push(format!(
+                        "\n{}\n",
+                        self.parse_block_element(&child, depth + 1)
+                    ));
                 }
                 "div" => {
-                    elements.push(format!("\n{}\n", self.parse_div_element(&child)));
+                    elements.push(format!("\n{}\n", self.parse_div_element(&child, depth + 1)));
                 }
                 "span" | "time" => {
-                    elements.push(self.parse_inline_element(&child));
+                    elements.push(self.parse_inline_element(&child, depth + 1));
                 }
                 "p" => {
-                    elements.push(format!("\n{}\n", self.parse_paragraph(&child)));
+                    elements.push(format!("\n{}\n", self.parse_paragraph(&child, depth + 1)));
                 }
                 "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                     elements.push(format!("\n{}\n", self.parse_heading(&child)));
                 }
                 "ul" | "ol" | "dl" | "dd" | "dt" => {
-                    elements.push(self.parse_list(&child, 0) + "\n");
+                    elements.push(self.parse_list(&child, depth + 1) + "\n");
                 }
                 "table" => {
                     elements.push(self.parse_table(&child) + "\n");
@@ -230,7 +248,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 _ => {
                     if !child_tag_name.is_empty() {
                         // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
-                        elements.push(self.parse_block_element(&child) + "\n");
+                        elements.push(self.parse_block_element(&child, depth + 1) + "\n");
                     }
                 }
             }
@@ -245,7 +263,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .join("")
     }
 
-    pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
+    pub fn parse_pre_inline_element(&self, node: &tl::Node, depth: usize) -> String {
         let mut elements: Vec<String> = Vec::new();
 
         if let Some(text_node) = node.as_raw() {
@@ -265,21 +283,21 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     // parse strong
                     elements.push(format!(
                         "**{}**",
-                        self.parse_pre_inline_element(&child).trim()
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
                     ))
                 }
                 "em" | "i" => {
                     // parse emphasis
                     elements.push(format!(
                         "*{}*",
-                        self.parse_pre_inline_element(&child).trim()
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
                     ))
                 }
                 "s" | "strike" | "del" => {
                     // parse strikethrough
                     elements.push(format!(
                         "~~{}~~",
-                        self.parse_pre_inline_element(&child).trim()
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
                     ))
                 }
                 "a" => elements.push(self.parse_link(&child)),
@@ -288,7 +306,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "ul" | "ol" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
                 }
-                _ => elements.push(self.parse_pre_inline_element(&child)),
+                _ => elements.push(self.parse_pre_inline_element(&child, depth + 1)),
             }
         }
 
@@ -301,7 +319,12 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .join("")
     }
 
-    pub fn parse_inline_element(&self, node: &tl::Node) -> String {
+    pub fn parse_inline_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         let mut elements: Vec<String> = Vec::new();
         let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
@@ -325,19 +348,31 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
             match child_tag_name.as_str() {
                 "p" => {
-                    elements.push(format!("\n{}\n", self.parse_inline_element(&child)));
+                    elements.push(format!(
+                        "\n{}\n",
+                        self.parse_inline_element(&child, depth + 1)
+                    ));
                 }
                 "strong" | "b" => {
                     // parse strong
-                    elements.push(format!("**{}**", self.parse_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "**{}**",
+                        self.parse_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "em" | "i" => {
                     // parse emphasis
-                    elements.push(format!("*{}*", self.parse_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "*{}*",
+                        self.parse_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "s" | "strike" | "del" => {
                     // parse strikethrough
-                    elements.push(format!("~~{}~~", self.parse_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "~~{}~~",
+                        self.parse_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
@@ -345,7 +380,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 "ul" | "ol" | "li" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
                 }
-                _ => elements.push(self.parse_inline_element(&child)),
+                _ => elements.push(self.parse_inline_element(&child, depth + 1)),
             }
         }
 
@@ -360,7 +395,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
 
     pub fn parse_heading(&self, node: &tl::Node) -> String {
         let tag_name = get_tag_name(&node);
-        let tag_text = self.parse_inline_element(node);
+        let tag_text = self.parse_inline_element(node, 0);
 
         match tag_name.as_str() {
             "h1" => format!("\n\n# {}\n\n", tag_text),
@@ -373,8 +408,12 @@ impl<'a> HtmlToMarkdownParser<'a> {
         }
     }
 
-    pub fn parse_paragraph(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+    pub fn parse_paragraph(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+        self.parse_inline_element(node, depth + 1)
     }
 
     pub fn parse_list(&self, node: &tl::Node, level: usize) -> String {
@@ -412,7 +451,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                             );
                         }
                         _ => {
-                            list_item_elements.push(self.parse_inline_element(&list_child));
+                            list_item_elements.push(self.parse_inline_element(&list_child, 0));
                             sublist = false;
                         }
                     }
@@ -425,7 +464,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     list_value = format!("{}- {}", indent, list_item_elements.join(" "));
                 }
             } else {
-                list_value = format!("{}{}", indent, self.parse_inline_element(&child));
+                list_value = format!("{}{}", indent, self.parse_inline_element(&child, 0));
             }
 
             // append if not empty
@@ -456,7 +495,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
             .get_children(header)
             .into_iter()
             .filter(|cell| get_tag_name(cell) == "th" || get_tag_name(cell) == "td")
-            .map(|cell| self.parse_inline_element(cell).trim().to_string())
+            .map(|cell| self.parse_inline_element(cell, 0).trim().to_string())
             .collect();
 
         let mut column_widths: Vec<usize> = header_cells.iter().map(|cell| cell.len()).collect();
@@ -467,7 +506,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 .get_children(row)
                 .into_iter()
                 .filter(|cell| get_tag_name(cell) == "td")
-                .map(|cell| self.parse_inline_element(cell).trim().to_string())
+                .map(|cell| self.parse_inline_element(cell, 0).trim().to_string())
                 .collect();
 
             for (i, cell) in cells.iter().enumerate() {
@@ -506,7 +545,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     .get_children(row)
                     .into_iter()
                     .filter(|cell| get_tag_name(cell) == "td")
-                    .map(|cell| self.parse_inline_element(cell).trim().to_string())
+                    .map(|cell| self.parse_inline_element(cell, 0).trim().to_string())
                     .collect();
 
                 format!(
@@ -533,28 +572,28 @@ impl<'a> HtmlToMarkdownParser<'a> {
     }
 
     pub fn parse_blockquote(&self, node: &tl::Node) -> String {
-        format!("> {}\n", self.parse_inline_element(node))
+        format!("> {}\n", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_pre(&self, node: &tl::Node) -> String {
-        let content = self.parse_pre_inline_element(node);
+        let content = self.parse_pre_inline_element(node, 0);
         format!("```\n{}\n```\n", content.trim_end())
     }
 
     pub fn parse_code(&self, node: &tl::Node) -> String {
-        format!("`{}`", self.parse_inline_element(node))
+        format!("`{}`", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_emphasis(&self, node: &tl::Node) -> String {
-        format!("*{}*", self.parse_inline_element(node))
+        format!("*{}*", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_strong(&self, node: &tl::Node) -> String {
-        format!("**{}**", self.parse_inline_element(node))
+        format!("**{}**", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_link(&self, node: &tl::Node) -> String {
-        let tag_text = self.parse_inline_element(node);
+        let tag_text = self.parse_inline_element(node, 0);
 
         if self.config.output_links {
             let tag_attributes = get_tag_attributes(node);
@@ -587,7 +626,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
     }
 
     pub fn parse_strikethrough(&self, node: &tl::Node) -> String {
-        format!("~~{}~~", self.parse_inline_element(node))
+        format!("~~{}~~", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_br(&self, _node: &tl::Node) -> String {
@@ -598,7 +637,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
         "\n\n----\n\n".to_string()
     }
 
-    pub fn parse_block_element(&self, node: &tl::Node) -> String {
+    pub fn parse_block_element(&self, node: &tl::Node, depth: usize) -> String {
         // initialize the block markdown strings
         let mut blocks: Vec<String> = Vec::new();
 
@@ -615,16 +654,16 @@ impl<'a> HtmlToMarkdownParser<'a> {
                 match child_tag_name.as_str() {
                     "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
                     | "nav" => {
-                        blocks.push(self.parse_block_element(&child) + "\n");
+                        blocks.push(self.parse_block_element(&child, depth + 1) + "\n");
                     }
                     "div" => {
-                        blocks.push(self.parse_div_element(&child) + "\n");
+                        blocks.push(self.parse_div_element(&child, depth + 1) + "\n");
                     }
                     "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                         blocks.push(self.parse_heading(&child) + "\n");
                     }
                     "p" => {
-                        blocks.push(format!("\n{}\n", self.parse_paragraph(&child)));
+                        blocks.push(format!("\n{}\n", self.parse_paragraph(&child, depth + 1)));
                     }
                     "ul" | "ol" | "dl" | "dd" | "dt" => {
                         blocks.push(self.parse_list(&child, 0) + "\n");
@@ -668,7 +707,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
                     _ => {
                         if !child_tag_name.is_empty() {
                             // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
-                            blocks.push(self.parse_block_element(&child) + "\n");
+                            blocks.push(self.parse_block_element(&child, depth + 1) + "\n");
                         }
                     }
                 }
@@ -688,7 +727,7 @@ impl<'a> HtmlToMarkdownParser<'a> {
         // get the top element
         if let Some(top_element) = self.get_top_element() {
             // get the block elements
-            normalize_markdown(&self.parse_block_element(&top_element).trim().to_string()) + "\n"
+            normalize_markdown(&self.parse_block_element(&top_element, 0).trim().to_string()) + "\n"
         } else {
             "".to_string()
         }
@@ -717,6 +756,7 @@ pub fn normalize_text(text: &str) -> String {
 pub struct HtmlToPlainTextParser<'a> {
     config: ParserConfig,
     dom: tl::VDom<'a>,
+    max_depth: usize,
 }
 
 impl<'a> HtmlToPlainTextParser<'a> {
@@ -724,7 +764,11 @@ impl<'a> HtmlToPlainTextParser<'a> {
         // Parse the HTML input into a virtual DOM
         let dom = tl::parse(html_input, tl::ParserOptions::default()).unwrap();
 
-        HtmlToPlainTextParser { config, dom }
+        HtmlToPlainTextParser {
+            config,
+            dom,
+            max_depth: DEFAULT_MAX_DEPTH,
+        }
     }
 
     pub fn parser(&self) -> &'a tl::Parser {
@@ -782,7 +826,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
         None
     }
 
-    pub fn parse_div_element(&self, node: &tl::Node) -> String {
+    pub fn parse_div_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         let mut elements: Vec<String> = Vec::new();
 
         for child in self.get_children(&node) {
@@ -794,13 +843,16 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
             match child_tag_name.as_str() {
                 "section" | "article" | "aside" | "header" | "footer" | "nav" => {
-                    elements.push(format!("\n{}\n", self.parse_block_element(&child)));
+                    elements.push(format!(
+                        "\n{}\n",
+                        self.parse_block_element(&child, depth + 1)
+                    ));
                 }
                 "div" => {
-                    elements.push(format!("\n{}\n", self.parse_div_element(&child)));
+                    elements.push(format!("\n{}\n", self.parse_div_element(&child, depth + 1)));
                 }
                 "span" | "time" => {
-                    elements.push(self.parse_inline_element(&child));
+                    elements.push(self.parse_inline_element(&child, depth + 1));
                 }
                 "p" => {
                     elements.push(format!("\n{}\n", self.parse_paragraph(&child)));
@@ -847,7 +899,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 _ => {
                     if !child_tag_name.is_empty() {
                         // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
-                        elements.push(self.parse_block_element(&child) + "\n");
+                        elements.push(self.parse_block_element(&child, depth + 1) + "\n");
                     }
                 }
             }
@@ -862,7 +914,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .join("")
     }
 
-    pub fn parse_pre_inline_element(&self, node: &tl::Node) -> String {
+    pub fn parse_pre_inline_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         let mut elements: Vec<String> = Vec::new();
 
         if let Some(text_node) = node.as_raw() {
@@ -880,15 +937,24 @@ impl<'a> HtmlToPlainTextParser<'a> {
             match child_tag_name.as_str() {
                 "strong" | "b" => {
                     // parse strong
-                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "{}",
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "em" | "i" => {
                     // parse emphasis
-                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "{}",
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "s" | "strike" | "del" => {
                     // parse strikethrough
-                    elements.push(format!("{}", self.parse_pre_inline_element(&child).trim()))
+                    elements.push(format!(
+                        "{}",
+                        self.parse_pre_inline_element(&child, depth + 1).trim()
+                    ))
                 }
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
@@ -896,7 +962,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 "ul" | "ol" | "dl" | "dt" | "dd" => {
                     elements.push(self.parse_list(&child, 0) + "\n");
                 }
-                _ => elements.push(self.parse_pre_inline_element(&child)),
+                _ => elements.push(self.parse_pre_inline_element(&child, depth + 1)),
             }
         }
 
@@ -909,7 +975,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
             .join("")
     }
 
-    pub fn parse_inline_element(&self, node: &tl::Node) -> String {
+    pub fn parse_inline_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         let mut elements: Vec<String> = Vec::new();
         let tag_name = get_tag_name(&node).to_ascii_lowercase();
 
@@ -933,7 +1004,10 @@ impl<'a> HtmlToPlainTextParser<'a> {
 
             match child_tag_name.as_str() {
                 "p" => {
-                    elements.push(format!("\n{}\n", self.parse_inline_element(&child)));
+                    elements.push(format!(
+                        "\n{}\n",
+                        self.parse_inline_element(&child, depth + 1)
+                    ));
                 }
                 "a" => elements.push(self.parse_link(&child)),
                 "img" => elements.push(self.parse_image(&child)),
@@ -942,7 +1016,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     elements.push(self.parse_list(&child, 0));
                     elements.push("\n".to_string());
                 }
-                _ => elements.push(self.parse_inline_element(&child)),
+                _ => elements.push(self.parse_inline_element(&child, depth + 1)),
             }
         }
 
@@ -956,12 +1030,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
     }
 
     pub fn parse_heading(&self, node: &tl::Node) -> String {
-        let tag_text = self.parse_inline_element(node);
+        let tag_text = self.parse_inline_element(node, 0);
         format!("\n\n{}\n\n", tag_text)
     }
 
     pub fn parse_paragraph(&self, node: &tl::Node) -> String {
-        format!("{}\n", self.parse_inline_element(node))
+        format!("{}\n", self.parse_inline_element(node, 0))
     }
 
     pub fn parse_list(&self, node: &tl::Node, level: usize) -> String {
@@ -994,7 +1068,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                             sublist = true;
                         }
                         _ => {
-                            list_item_elements.push(self.parse_inline_element(&list_child));
+                            list_item_elements.push(self.parse_inline_element(&list_child, 0));
                         }
                     }
                 }
@@ -1028,7 +1102,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 .iter()
                 .filter(|cell| get_tag_name(cell) == "th" || get_tag_name(cell) == "td")
             {
-                let cell_text = self.parse_inline_element(cell).trim().to_string();
+                let cell_text = self.parse_inline_element(cell, 0).trim().to_string();
                 row_text.push_str(&format!("{}\t", cell_text));
             }
             table_text.push_str(&format!("{}\n", row_text.trim_end()));
@@ -1038,29 +1112,29 @@ impl<'a> HtmlToPlainTextParser<'a> {
     }
 
     pub fn parse_blockquote(&self, node: &tl::Node) -> String {
-        let quote = self.parse_inline_element(node);
+        let quote = self.parse_inline_element(node, 0);
         format!("> {}\n", quote)
     }
 
     pub fn parse_pre(&self, node: &tl::Node) -> String {
-        let content = self.parse_pre_inline_element(node);
+        let content = self.parse_pre_inline_element(node, 0);
         format!("\n{}\n", content.trim_end())
     }
 
     pub fn parse_code(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+        self.parse_inline_element(node, 0)
     }
 
     pub fn parse_emphasis(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+        self.parse_inline_element(node, 0)
     }
 
     pub fn parse_strong(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+        self.parse_inline_element(node, 0)
     }
 
     pub fn parse_link(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+        self.parse_inline_element(node, 0)
     }
 
     pub fn parse_image(&self, node: &tl::Node) -> String {
@@ -1073,7 +1147,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
     }
 
     pub fn parse_strikethrough(&self, node: &tl::Node) -> String {
-        self.parse_inline_element(node)
+        self.parse_inline_element(node, 0)
     }
 
     pub fn parse_br(&self, _node: &tl::Node) -> String {
@@ -1084,7 +1158,12 @@ impl<'a> HtmlToPlainTextParser<'a> {
         "\n---\n".to_string()
     }
 
-    pub fn parse_block_element(&self, node: &tl::Node) -> String {
+    pub fn parse_block_element(&self, node: &tl::Node, depth: usize) -> String {
+        // stack overflow prevention
+        if depth >= self.max_depth {
+            return "".to_string();
+        }
+
         // Initialize the block text strings
         let mut blocks: Vec<String> = Vec::new();
 
@@ -1101,10 +1180,13 @@ impl<'a> HtmlToPlainTextParser<'a> {
                 match child_tag_name.as_str() {
                     "body" | "main" | "section" | "article" | "aside" | "header" | "footer"
                     | "nav" => {
-                        blocks.push(format!("\n{}\n", self.parse_block_element(&child)));
+                        blocks.push(format!(
+                            "\n{}\n",
+                            self.parse_block_element(&child, depth + 1)
+                        ));
                     }
                     "div" => {
-                        blocks.push(format!("\n{}\n", self.parse_div_element(&child)));
+                        blocks.push(format!("\n{}\n", self.parse_div_element(&child, depth + 1)));
                     }
                     "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
                         blocks.push(format!("\n{}\n", self.parse_heading(&child)));
@@ -1154,7 +1236,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
                     _ => {
                         if !child_tag_name.is_empty() {
                             // dbg!(format!("Unknown tag being treated as block: {}", child_tag_name));
-                            blocks.push(self.parse_block_element(&child) + "\n");
+                            blocks.push(self.parse_block_element(&child, depth + 1) + "\n");
                         }
                     }
                 }
@@ -1174,7 +1256,7 @@ impl<'a> HtmlToPlainTextParser<'a> {
         // Get the top element
         if let Some(top_element) = self.get_top_element() {
             // Get the block elements
-            normalize_text(&self.parse_block_element(&top_element).trim().to_string()) + "\n"
+            normalize_text(&self.parse_block_element(&top_element, 0).trim().to_string()) + "\n"
         } else {
             "".to_string()
         }
@@ -1412,5 +1494,33 @@ mod tests {
         assert!(result.contains(
             "[Federal Register: June 15, 2010 (Volume 75, Number 114)]\n[Proposed Rules]\n"
         ));
+    }
+
+    #[test]
+    fn test_segfault_001_text() {
+        // load from CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let file_path = path::Path::new(manifest_dir).join("resources/segfault001.html");
+        let sample = fs::read_to_string(file_path).unwrap();
+
+        // parse the file
+        let parser = HtmlToPlainTextParser::new(ParserConfig::new(None, true, true), &sample);
+        let result = dbg!(parser.to_plain_text());
+
+        assert!(result.contains("resulting in the acquisition of 99.99% of the capital"));
+    }
+
+    #[test]
+    fn test_segfault_001_md() {
+        // load from CARGO_MANIFEST_DIR
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let file_path = path::Path::new(manifest_dir).join("resources/segfault001.html");
+        let sample = fs::read_to_string(file_path).unwrap();
+
+        // parse the file
+        let parser = HtmlToMarkdownParser::new(ParserConfig::new(None, true, true), &sample);
+        let result = dbg!(parser.to_markdown());
+
+        assert!(result.contains("resulting in the acquisition of 99.99% of the capital"));
     }
 }
