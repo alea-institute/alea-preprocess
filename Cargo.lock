@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "alea-preprocess"
-version = "0.1.12"
+version = "0.1.13"
 dependencies = [
  "base64 0.22.1",
  "blake2",

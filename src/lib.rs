@@ -168,6 +168,16 @@ mod alea_preprocess {
                 }
             }
 
+            #[pymodule]
+            mod token_rolling {
+                use super::*;
+
+                #[pyfunction]
+                fn hash_tokens(tokens: Vec<i64>, window_size: usize) -> PyResult<String> {
+                    Ok(crate::algos::hashing::token_rolling::hash_tokens(&tokens, window_size))
+                }
+            }
+
             // submodule for ctph
             #[pymodule]
             mod ctph {
@@ -241,6 +251,32 @@ mod alea_preprocess {
                 #[pyfunction]
                 fn compare(hash1: &str, hash2: &str) -> PyResult<f64> {
                     Ok(crate::algos::hashing::ctph::similarity(hash1, hash2))
+                }
+            }
+
+            // submodule for token_ctph
+            #[pymodule]
+            mod token_ctph {
+                use super::*;
+
+                // function to hash tokens using token_ctph
+                #[pyfunction]
+                fn hash_tokens(
+                    tokens: Vec<i64>,
+                    window_size: usize,
+                    digest_size: usize,
+                ) -> PyResult<String> {
+                    Ok(crate::algos::hashing::token_ctph::hash_tokens(
+                        &tokens,
+                        window_size,
+                        digest_size,
+                    ))
+
+                }
+                // function to compare ctph hashes
+                #[pyfunction]
+                fn compare(hash1: &str, hash2: &str) -> PyResult<f64> {
+                    Ok(crate::algos::hashing::token_ctph::similarity(hash1, hash2))
                 }
             }
         }
