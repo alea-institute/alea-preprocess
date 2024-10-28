@@ -43,7 +43,6 @@ impl TokenCTPH {
             if rolling_hash.hash() % self.digest_size as u64 == (self.digest_size - 1) as u64
                 || current_piece.len() >= self.window_size
             {
-                /// debug print on trigger
                 let piece_hash = self.hash_piece(&current_piece);
                 blocks.last_mut().unwrap().push_str(&piece_hash);
                 current_piece.clear();

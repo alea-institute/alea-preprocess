@@ -47,6 +47,7 @@ dependencies = [
  "lazy_static",
  "pdfium-render",
  "pyo3",
+ "rand",
  "rayon",
  "regex",
  "reqwest",
