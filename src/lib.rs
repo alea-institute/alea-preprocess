@@ -1,3 +1,4 @@
+/// Library imports for python bindings
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::*;
@@ -6,6 +7,7 @@ use serde_json::Value;
 mod algos;
 mod io;
 mod parsers;
+mod tasks;
 
 fn convert_values(py: Python, values: Vec<Value>) -> PyResult<Vec<PyObject>> {
     values
@@ -1268,6 +1270,26 @@ mod alea_preprocess {
                 }
             }
         }
+    }
+
+    #[pymodule]
+    mod tasks {
+        use super::*;
+
+        #[pymodule(submodule)]
+        mod sequences {
+            use super::*;
+            use crate::tasks::sequences;
+
+            #[pyfunction]
+            pub fn split_sequence_max(
+                sequence: Vec<i32>,
+                max_size: usize,
+            ) -> PyResult<Vec<Vec<i32>>> {
+                Ok(sequences::split_sequence_max(&sequence, max_size))
+            }
+        }
+
     }
 
     #[pymodule_init]
