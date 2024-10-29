@@ -19,6 +19,12 @@ pub fn get_masked_sample(
     max_seq_length: usize,
     prob_mask: f64,
 ) -> (Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>) {
+    // check that tokens fit in max_seq_length
+    assert!(
+        tokens.len() <= max_seq_length - 2,
+        "Tokens exceed max sequence length"
+    );
+
     // get rng
     let mut rng = rand::thread_rng();
 
@@ -53,10 +59,42 @@ pub fn get_masked_sample(
         }
     }
 
-
     (input_ids, attention_mask, token_type_ids, labels)
 }
 
+/// Get masked samples from tokens
+pub fn get_masked_samples_from_tokens(
+    tokens: &[i32],
+    max_seq_length: usize,
+    cls_token_id: i32,
+    mask_token_id: i32,
+    sep_token_id: i32,
+    pad_token_id: i32,
+    label_mask_id: i32,
+    prob_mask: f64,
+) -> Vec<(Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>)> {
+    // we first use split max to get the longest sequence lengths, then provide them to get_masked_sample
+    // note that we use convention where each sample should have at least <cls> and <sep> tokens,
+    // though we don't require any eos equivalent or padding.
+    let sequences = split_sequence_max(&tokens, max_seq_length - 2);
+
+    // return the masked samples
+    sequences
+        .iter()
+        .map(|seq| {
+            get_masked_sample(
+                seq,
+                cls_token_id,
+                mask_token_id,
+                sep_token_id,
+                pad_token_id,
+                label_mask_id,
+                max_seq_length,
+                prob_mask,
+            )
+        })
+        .collect()
+}
 
 /// Get masked samples from content
 /// Need to return a vector of tuples containing input_ids, attention_mask, token_type_ids, and labels
@@ -70,38 +108,29 @@ pub fn get_masked_samples_from_content(
     pad_token_id: i32,
     label_mask_id: i32,
     prob_mask: f64,
-) ->  Vec<(Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>)> {
+) -> Vec<(Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>)> {
     // extract text
-    let content = String::from_utf8(
-        extract_content(encoded_content)
-    )
-    .expect("Failed to convert content to string");
+    let content = String::from_utf8(extract_content(encoded_content))
+        .expect("Failed to convert content to string");
 
     // we need to cast u32 tokens to i32
-    let tokens: Vec<i32> = encode_str(&tokenizer_name, &content).iter().map(|&x| x as i32).collect();
-
-    // we first use split max to get the longest sequence lengths, then provide them to get_masked_sample
-    let sequences = split_sequence_max(&tokens, max_seq_length);
-
-    // return the masked samples
-    sequences
+    let tokens: Vec<i32> = encode_str(&tokenizer_name, &content)
         .iter()
-        .map(|seq|
-            get_masked_sample(
-                seq,
-                cls_token_id,
-                mask_token_id,
-                sep_token_id,
-                pad_token_id,
-                label_mask_id,
-                max_seq_length,
-                prob_mask
-            )
-        )
-        .collect()
+        .map(|&x| x as i32)
+        .collect();
+
+    // get masked samples from tokens
+    get_masked_samples_from_tokens(
+        &tokens,
+        max_seq_length,
+        cls_token_id,
+        mask_token_id,
+        sep_token_id,
+        pad_token_id,
+        label_mask_id,
+        prob_mask,
+    )
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -112,8 +141,6 @@ mod tests {
     const CLS_TOKEN_ID: i32 = 5;
     const MASK_TOKEN_ID: i32 = 6;
     const LABEL_MASK_ID: i32 = -100;
-
-
 
     #[test]
     fn test_get_masked_sample() {
@@ -161,10 +188,10 @@ mod tests {
             LABEL_MASK_ID,
             0.0,
         )
-            // get only first
-            .into_iter()
-            .next()
-            .unwrap();
+        // get only first
+        .into_iter()
+        .next()
+        .unwrap();
 
         // input_ids should be: cls, 2556, 400, 270, 2329, sep, pad, pad, pad, pad
         assert_eq!(input_ids[0], CLS_TOKEN_ID);
@@ -190,17 +217,17 @@ mod tests {
             LABEL_MASK_ID,
             1.0,
         )
-            // get only first
-            .into_iter()
-            .next()
-            .unwrap();
+        // get only first
+        .into_iter()
+        .next()
+        .unwrap();
 
         // input_ids should be: cls, 2556, 400, 270, 2329, sep, pad, pad, pad, pad
         assert_eq!(input_ids[0], CLS_TOKEN_ID);
-        assert_eq!(input_ids[1], 2556);
-        assert_eq!(input_ids[2], 400);
-        assert_eq!(input_ids[3], 270);
-        assert_eq!(input_ids[4], 2329);
+        assert_eq!(input_ids[1], 6);
+        assert_eq!(input_ids[2], 6);
+        assert_eq!(input_ids[3], 6);
+        assert_eq!(input_ids[4], 6);
         assert_eq!(input_ids[5], SEP_TOKEN_ID);
 
         // check the length of the output vectors

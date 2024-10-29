@@ -1,9 +1,9 @@
 // Utility methods for sequences
 
-use std::io::Read;
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use flate2::read::ZlibDecoder;
+use std::io::Read;
 
 pub fn extract_content(encoded_content: &str) -> Vec<u8> {
     // decode the content
@@ -16,7 +16,6 @@ pub fn extract_content(encoded_content: &str) -> Vec<u8> {
 
     output_buffer
 }
-
 
 pub fn split_sequence_max(sequence: &[i32], max_size: usize) -> Vec<Vec<i32>> {
     let mut result = Vec::new();
@@ -45,7 +44,6 @@ pub fn split_sequence_max(sequence: &[i32], max_size: usize) -> Vec<Vec<i32>> {
     result
 }
 
-
 // tests
 #[cfg(test)]
 mod tests {
@@ -59,7 +57,10 @@ mod tests {
 
         let sequence = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         let result = split_sequence_max(&sequence, 3);
-        assert_eq!(result, vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9], vec![10]]);
+        assert_eq!(
+            result,
+            vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9], vec![10]]
+        );
 
         let sequence = vec![1, 2, 3];
         let result = split_sequence_max(&sequence, 5);
@@ -67,7 +68,15 @@ mod tests {
 
         let sequence = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         let result = split_sequence_max(&sequence, 4);
-        assert_eq!(result, vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8], vec![9, 10, 11, 12], vec![13, 14, 15]]);
+        assert_eq!(
+            result,
+            vec![
+                vec![1, 2, 3, 4],
+                vec![5, 6, 7, 8],
+                vec![9, 10, 11, 12],
+                vec![13, 14, 15]
+            ]
+        );
     }
 
     // test extract_content with eJwLycgsVgCiRIWS1OISACRzBPY=

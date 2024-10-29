@@ -1,5 +1,4 @@
 /// Rolling hash function optimized for LLM token arrays
-
 use base64::prelude::*;
 
 pub struct RollingTokenHash {
@@ -39,9 +38,7 @@ impl RollingTokenHash {
 
         // Combine previous hash with new token value using wrapping operations
         // Using rotate_left helps distribute token values across the hash space
-        self.hash = self.hash
-            .wrapping_add(token_unsigned)
-            .rotate_left(1);
+        self.hash = self.hash.wrapping_add(token_unsigned).rotate_left(1);
     }
 
     pub fn hash(&self) -> u64 {
@@ -79,7 +76,7 @@ mod tests {
         let mut hash = RollingTokenHash::new(3);
         hash.update(42);
         assert_eq!(hash.current_window(), &[42]);
-        assert_ne!(hash.hash(), 0);  // Hash should change after update
+        assert_ne!(hash.hash(), 0); // Hash should change after update
     }
 
     #[test]
@@ -95,7 +92,7 @@ mod tests {
         let hash_before = hash.hash();
         hash.update(3);
         assert_eq!(hash.current_window(), &[2, 3]);
-        assert_ne!(hash.hash(), hash_before);  // Hash should change
+        assert_ne!(hash.hash(), hash_before); // Hash should change
     }
 
     #[test]
@@ -167,8 +164,14 @@ mod tests {
 
     #[test]
     fn test_similar_sequences_1() {
-        let tokens1 = vec![1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        let tokens2 = vec![1, 2, 3, 4, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+        let tokens1 = vec![
+            1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 10, 11, 12,
+            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        ];
+        let tokens2 = vec![
+            1, 2, 3, 4, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 10, 11, 12,
+            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        ];
         let hash1 = dbg!(hash_tokens(&tokens1, 2));
         let hash2 = dbg!(hash_tokens(&tokens2, 2));
         assert!(hash1 != hash2);
@@ -176,8 +179,14 @@ mod tests {
 
     #[test]
     fn test_similar_sequences_2() {
-        let tokens1 = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        let tokens2 = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
+        let tokens1 = vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24,
+        ];
+        let tokens2 = vec![
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25,
+        ];
         let hash1 = dbg!(hash_tokens(&tokens1, 2));
         let hash2 = dbg!(hash_tokens(&tokens2, 2));
         assert!(hash1 != hash2);
@@ -190,12 +199,15 @@ mod tests {
     // {'input_ids': [671, 1485, 295, 3112, 400, 5515, 353, 281, 1519, 295, 713, 3003, 26], 'token_type_ids': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}
     #[test]
     fn test_real_token_sequences() {
-        let tokens1 = vec![671, 1485, 295, 3773, 400, 5515, 353, 281, 1519, 295, 13034, 2793, 26];
-        let tokens2 = vec![671, 1485, 295, 3112, 400, 5515, 353, 281, 1519, 295, 713, 3003, 26];
+        let tokens1 = vec![
+            671, 1485, 295, 3773, 400, 5515, 353, 281, 1519, 295, 13034, 2793, 26,
+        ];
+        let tokens2 = vec![
+            671, 1485, 295, 3112, 400, 5515, 353, 281, 1519, 295, 713, 3003, 26,
+        ];
         let hash1 = dbg!(hash_tokens(&tokens1, 2));
         let hash2 = dbg!(hash_tokens(&tokens2, 2));
 
         assert!(hash1 != hash2);
     }
-
 }

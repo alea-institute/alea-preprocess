@@ -11,5 +11,5 @@ pub mod blake2;
 pub mod blake3;
 pub mod ctph;
 pub mod rolling;
-pub mod token_rolling;
 pub mod token_ctph;
+pub mod token_rolling;

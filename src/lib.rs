@@ -176,7 +176,10 @@ mod alea_preprocess {
 
                 #[pyfunction]
                 fn hash_tokens(tokens: Vec<i64>, window_size: usize) -> PyResult<String> {
-                    Ok(crate::algos::hashing::token_rolling::hash_tokens(&tokens, window_size))
+                    Ok(crate::algos::hashing::token_rolling::hash_tokens(
+                        &tokens,
+                        window_size,
+                    ))
                 }
             }
 
@@ -273,7 +276,6 @@ mod alea_preprocess {
                         window_size,
                         digest_size,
                     ))
-
                 }
                 // function to compare ctph hashes
                 #[pyfunction]
@@ -1290,6 +1292,82 @@ mod alea_preprocess {
             }
         }
 
+        #[pymodule(submodule)]
+        mod mlm {
+            use super::*;
+            use crate::tasks::mlm;
+
+            #[pyfunction]
+            pub fn get_masked_sample(
+                tokens: Vec<i32>,
+                cls_token_id: i32,
+                mask_token_id: i32,
+                sep_token_id: i32,
+                pad_token_id: i32,
+                label_mask_id: i32,
+                max_seq_length: usize,
+                prob_mask: f64,
+            ) -> (Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>) {
+                mlm::get_masked_sample(
+                    &tokens,
+                    cls_token_id,
+                    mask_token_id,
+                    sep_token_id,
+                    pad_token_id,
+                    label_mask_id,
+                    max_seq_length,
+                    prob_mask,
+                )
+            }
+
+            #[pyfunction]
+            pub fn get_masked_samples_from_tokens(
+                tokens: Vec<i32>,
+                max_seq_length: usize,
+                cls_token_id: i32,
+                mask_token_id: i32,
+                sep_token_id: i32,
+                pad_token_id: i32,
+                label_mask_id: i32,
+                prob_mask: f64,
+            ) -> Vec<(Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>)> {
+                mlm::get_masked_samples_from_tokens(
+                    &tokens,
+                    max_seq_length,
+                    cls_token_id,
+                    mask_token_id,
+                    sep_token_id,
+                    pad_token_id,
+                    label_mask_id,
+                    prob_mask,
+                )
+            }
+
+            #[pyfunction]
+            pub fn get_masked_samples_from_content(
+                encoded_content: &str,
+                max_seq_length: usize,
+                tokenizer_name: &str,
+                cls_token_id: i32,
+                mask_token_id: i32,
+                sep_token_id: i32,
+                pad_token_id: i32,
+                label_mask_id: i32,
+                prob_mask: f64,
+            ) -> Vec<(Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>)> {
+                mlm::get_masked_samples_from_content(
+                    encoded_content,
+                    max_seq_length,
+                    tokenizer_name,
+                    cls_token_id,
+                    mask_token_id,
+                    sep_token_id,
+                    pad_token_id,
+                    label_mask_id,
+                    prob_mask,
+                )
+            }
+        }
     }
 
     #[pymodule_init]

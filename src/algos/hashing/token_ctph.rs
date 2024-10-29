@@ -1,8 +1,7 @@
+use crate::algos::hashing::token_rolling::RollingTokenHash;
 /// Context-Triggered Piecewise Hashing (CTPH) adapted for token arrays
 /// Instead of working with bytes, this version works directly with token sequences
 use std::collections::HashSet;
-use crate::algos::hashing::token_rolling::RollingTokenHash;
-
 
 pub struct TokenCTPH {
     window_size: usize,
@@ -24,7 +23,7 @@ impl TokenCTPH {
         for &token in tokens {
             hasher.update(&token.to_le_bytes());
         }
-        let mut result = [0; 8];  // Using 64-bit pieces since we're working with tokens
+        let mut result = [0; 8]; // Using 64-bit pieces since we're working with tokens
         hasher.finalize_xof().fill(&mut result);
         hex::encode(result)
     }
@@ -138,7 +137,7 @@ mod tests {
         let ctph = TokenCTPH::new(2, 4);
         let hash = ctph.compute(&tokens);
         assert!(hash.starts_with("2:4:"));
-        assert!(hash.len() > 4);  // Should have some hash content
+        assert!(hash.len() > 4); // Should have some hash content
     }
 
     #[test]
@@ -156,35 +155,35 @@ mod tests {
         let tokens2 = vec![6, 7, 8, 9, 10];
         let hash1 = hash_tokens(&tokens1, 2, 4);
         let hash2 = hash_tokens(&tokens2, 2, 4);
-        assert!(dbg!(similarity(&hash1, &hash2)) < 0.5);  // Should be quite different
+        assert!(dbg!(similarity(&hash1, &hash2)) < 0.5); // Should be quite different
     }
 
     #[test]
     fn test_similar_sequences() {
-        let tokens1 = vec![6153, 424, 24, 300, 281, 17938, 295, 281, 1032, 922, 377, 300,
-                          281, 45261, 24, 2413, 24, 377, 38148, 295, 4639, 3184, 54456, 310, 2899,
-                          295, 281, 1032, 922, 1171, 9018, 377, 777, 4845, 281, 1974, 1412, 15118,
-                          295, 2507, 16228, 1228, 3156, 1974, 735, 517, 1727, 15549, 377, 35233,
-                          4757, 1663, 18640, 24, 15549, 377, 35233, 4757, 3999, 3757, 24, 377,
-                          15549, 377, 35233, 284, 519, 280, 295, 4757, 7873, 4305, 295, 37043,
-                          334, 3778, 674, 295, 281, 10603, 11940, 1431, 4899, 643, 7500, 300,
-                          270, 2979, 2781, 377, 965, 18880, 7369, 24, 300, 6344, 377, 300, 1173,
-                          440, 281, 1285, 295, 281, 3238, 295, 3504, 1184, 475, 517, 10023, 295,
-                          281, 1032, 922, 26];
-        let tokens2 = vec![6153, 424, 24, 300, 281, 17938, 295, 281, 1032, 922, 377, 300,
-                           281, 45261, 24, 2413, 24, 377, 38148, 295, 4639, 3184, 54456, 310, 2899,
-                           295, 281, 1032, 922, 1171, 9018, 377, 777, 4845, 281, 1974, 1412, 15118,
-                           295, 2507, 16228, 1228, 3156, 23805, 735, 517, 1727, 15549, 377, 35233,
-                           4757, 1663, 18640, 24, 61109, 82, 11114, 377, 35233, 4757, 3999, 3757,
-                           24, 377, 15549, 377, 35233, 284, 519, 280, 295, 4757, 7873, 4305, 295,
-                           37043, 334, 3778, 674, 295, 281, 10603, 11940, 1431, 4899, 643, 7500,
-                           300, 270, 2979, 2781, 377, 965, 18880, 7369, 24, 300, 6344, 377, 300,
-                           1173, 440, 281, 1285, 295, 281, 3238, 295, 3504, 1184, 475, 517, 10023,
-                           295, 281, 1032, 922, 26];
+        let tokens1 = vec![
+            6153, 424, 24, 300, 281, 17938, 295, 281, 1032, 922, 377, 300, 281, 45261, 24, 2413,
+            24, 377, 38148, 295, 4639, 3184, 54456, 310, 2899, 295, 281, 1032, 922, 1171, 9018,
+            377, 777, 4845, 281, 1974, 1412, 15118, 295, 2507, 16228, 1228, 3156, 1974, 735, 517,
+            1727, 15549, 377, 35233, 4757, 1663, 18640, 24, 15549, 377, 35233, 4757, 3999, 3757,
+            24, 377, 15549, 377, 35233, 284, 519, 280, 295, 4757, 7873, 4305, 295, 37043, 334,
+            3778, 674, 295, 281, 10603, 11940, 1431, 4899, 643, 7500, 300, 270, 2979, 2781, 377,
+            965, 18880, 7369, 24, 300, 6344, 377, 300, 1173, 440, 281, 1285, 295, 281, 3238, 295,
+            3504, 1184, 475, 517, 10023, 295, 281, 1032, 922, 26,
+        ];
+        let tokens2 = vec![
+            6153, 424, 24, 300, 281, 17938, 295, 281, 1032, 922, 377, 300, 281, 45261, 24, 2413,
+            24, 377, 38148, 295, 4639, 3184, 54456, 310, 2899, 295, 281, 1032, 922, 1171, 9018,
+            377, 777, 4845, 281, 1974, 1412, 15118, 295, 2507, 16228, 1228, 3156, 23805, 735, 517,
+            1727, 15549, 377, 35233, 4757, 1663, 18640, 24, 61109, 82, 11114, 377, 35233, 4757,
+            3999, 3757, 24, 377, 15549, 377, 35233, 284, 519, 280, 295, 4757, 7873, 4305, 295,
+            37043, 334, 3778, 674, 295, 281, 10603, 11940, 1431, 4899, 643, 7500, 300, 270, 2979,
+            2781, 377, 965, 18880, 7369, 24, 300, 6344, 377, 300, 1173, 440, 281, 1285, 295, 281,
+            3238, 295, 3504, 1184, 475, 517, 10023, 295, 281, 1032, 922, 26,
+        ];
         let hash1 = dbg!(hash_tokens(&tokens1, 4, 8));
         let hash2 = dbg!(hash_tokens(&tokens2, 4, 8));
         let sim = dbg!(similarity(&hash1, &hash2));
-        assert!(sim > 0.0 && sim < 1.0);  // Should be somewhat similar
+        assert!(sim > 0.0 && sim < 1.0); // Should be somewhat similar
     }
 
     #[test]
@@ -192,7 +191,7 @@ mod tests {
         let tokens = vec![1, 2, 3, 4, 5];
         let hash1 = hash_tokens(&tokens, 2, 4);
         let hash2 = hash_tokens(&tokens, 3, 4);
-        assert_eq!(similarity(&hash1, &hash2), 0.0);  // Different parameters should give 0
+        assert_eq!(similarity(&hash1, &hash2), 0.0); // Different parameters should give 0
     }
 
     #[test]
@@ -200,7 +199,7 @@ mod tests {
         let tokens = vec![1, 2, 3, 4, 5];
         let hash1 = hash_tokens(&tokens, 2, 4);
         let hash2 = hash_tokens(&tokens, 2, 5);
-        assert_eq!(similarity(&hash1, &hash2), 0.0);  // Different parameters should give 0
+        assert_eq!(similarity(&hash1, &hash2), 0.0); // Different parameters should give 0
     }
 
     #[test]
@@ -214,10 +213,10 @@ mod tests {
     #[test]
     fn test_subsequence_similarity() {
         let tokens1 = vec![1, 2, 3, 4, 5];
-        let tokens2 = vec![0, 2, 2, 6, 1, 2, 3, 4, 5, 6, 7];  // Contains first sequence
+        let tokens2 = vec![0, 2, 2, 6, 1, 2, 3, 4, 5, 6, 7]; // Contains first sequence
         let hash1 = dbg!(hash_tokens(&tokens1, 2, 2));
         let hash2 = dbg!(hash_tokens(&tokens2, 2, 2));
         let sim = similarity(&hash1, &hash2);
-        assert!(sim > 0.0);  // Should detect the similar subsequence
+        assert!(sim > 0.0); // Should detect the similar subsequence
     }
 }
