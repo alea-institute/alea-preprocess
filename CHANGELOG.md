@@ -1,4 +1,4 @@
-### 0.1.11: 2024-10-08
+### 0.1.12: 2024-10-08
 - Lower stack overflow debug verbosity
 
 ### 0.1.11: 2024-10-08
@@ -12,11 +12,11 @@
 - Improved HTML/Markdown parsing
 
 ### 0.1.8: 2024-10-06
-- Adding HTML5 <time> tag support for HTML conversions
+- Adding HTML5 `<time>` tag support for HTML conversions
 - Handling edge cases for PDF gap calibration with zero width/height fonts and empty pages
 
 ### 0.1.7: 2024-10-06
-- Better whitespace preservation in <pre> and <code> tags
+- Better whitespace preservation in `<pre>` and `<code>` tags
 
 ### 0.1.6: 2024-10-06
 - Improved handling of older HTML and HTML with "custom"/invalid tags
